@@ -1,0 +1,7 @@
+# ignore build files
+build/
+
+# ignore text files start with data
+data*.txt
+
+
