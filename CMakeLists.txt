@@ -39,10 +39,10 @@ target_compile_options(BrownianMotion PRIVATE -Wall -fPIC)
 
 # set fsanitize=address for Debug mode
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(BrownianMotion PRIVATE -fsanitize=address)
+    target_compile_options(BrownianMotion PRIVATE -fsanitize=address -undefined dynamic_lookup)
     target_link_options(BrownianMotion PRIVATE -fsanitize=address -undefined dynamic_lookup)
 else()
-    target_compile_options(BrownianMotion PRIVATE -O3)
+    target_compile_options(BrownianMotion PRIVATE -O3 -undefined dynamic_lookup)
     target_link_options(BrownianMotion PRIVATE -O3 -undefined dynamic_lookup)
 endif()
 
@@ -56,8 +56,8 @@ target_compile_options(BrownianMotionMain PRIVATE -Wall -fPIC)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(BrownianMotionMain PRIVATE -fsanitize=address)
-    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address)
+    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address -undefined dynamic_lookup)
 else()
     target_compile_options(BrownianMotionMain PRIVATE -O3)
-    target_link_options(BrownianMotionMain PRIVATE -O3)
+    target_link_options(BrownianMotionMain PRIVATE -O3 -undefined dynamic_lookup)
 endif()

@@ -2,6 +2,11 @@
 build/
 
 # ignore text files start with data
-data*.txt
+data*
 
+# ignore debug files:
+debug*
+
+# ignore python files:
+*.py
 

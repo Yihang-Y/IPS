@@ -16,6 +16,9 @@ PYBIND11_MODULE(BrownianMotion, m) {
         .def(py::init<double, OverdampedLangevin<1>::force_callable, position<1>>())
         .def("eulerMaruyamaStep", &OverdampedLangevin<1>::eulerMaruyamaStep)
         .def("getCurrentPosition", &OverdampedLangevin<1>::getCurrentPosition)
-        .def("getTrajectory", &OverdampedLangevin<1>::getTrajectory);
+        .def("getTrajectory", &OverdampedLangevin<1>::getTrajectoryPy);
 
+    py::class_<BatchedOverdampedLangevin<1>>(m, "BatchedOverdampedLangevin")
+        .def(py::init<double, BatchedOverdampedLangevin<1>::force_callable, std::vector<position<1>>>())
+        .def("getBatchedTrajectory", &BatchedOverdampedLangevin<1>::getBatchedTrajectoryPy);
 }
