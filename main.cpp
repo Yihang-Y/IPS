@@ -9,6 +9,7 @@
 #include <vector>
 #include <chrono>
 
+#define NUM_TASKS 16
 
 
 auto generate_random_init(size_t num) -> std::vector<position<1>>{
@@ -41,12 +42,12 @@ int main(int argc, char *argv[])
 
     // measure the time
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    auto traj = odLangevin.getTrajectory(1000000, 0.01);
+    auto traj = odLangevin.getTrajectory(10000000, 0.01);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+    auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    std::cout << "Time difference = " << one_time << "[ms]" << std::endl;
 
-    auto inits = generate_random_init(512);
-    std::cout << inits.size() << std::endl;
+    auto inits = generate_random_init(NUM_TASKS);
     auto b_odl = BatchedOverdampedLangevin<1>(1, force_func, inits);
     // record the time
     begin = std::chrono::steady_clock::now();
@@ -54,5 +55,6 @@ int main(int argc, char *argv[])
     end = std::chrono::steady_clock::now();
     std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
 
+    std::cout << "The speedup is " << double(one_time) * NUM_TASKS / std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
     return 0;
 }

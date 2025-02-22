@@ -24,6 +24,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/embed.h>
 #include <memory>
+#include <chrono>
 
 namespace py = pybind11;
 
@@ -34,12 +35,12 @@ py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double,
     std::vector<ssize_t> shape = { static_cast<ssize_t>(ptr->size()), static_cast<ssize_t>(Dim) };
     std::vector<ssize_t> strides = { static_cast<ssize_t>(Dim * sizeof(double)), static_cast<ssize_t>(sizeof(double)) };
     return py::array_t<double>(py::buffer_info(
-        data_ptr,                            // 数据指针
-        sizeof(double),                      // 每个元素大小
-        py::format_descriptor<double>::format(), // 数据格式
-        2,                                   // 维度
-        shape,                               // 形状
-        strides                              // 步长
+        data_ptr,                            // data pointer
+        sizeof(double),                      // size of each element
+        py::format_descriptor<double>::format(), // data type
+        2,                                   // number of dimensions
+        shape,                               // shape, i.e. number of elements in each dimension
+        strides                              // strides, i.e. bytes to jump to get to the next element
     ));
 }
 
@@ -57,6 +58,10 @@ public:
     OverdampedLangevin(double _kbT, force_callable _force, position<Dim> _init): kbT(_kbT), force(_force), current_position(_init){
         generator.seed(std::random_device()());
     }
+    OverdampedLangevin(double _kbT, position<Dim> _init): kbT(_kbT), current_position(_init){
+        force = [](position<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+        generator.seed(std::random_device()());
+    }
     ~OverdampedLangevin(){
         
     }
@@ -67,19 +72,19 @@ public:
             current_position.x[i] += force(current_position) * step_size + std::sqrt(2 * kbT * step_size) * std::normal_distribution<double>(0, 1)(generator);
         }
     }
-    const position<Dim>& getCurrentPosition(){
-        return current_position;
-    }
-    // 修改：返回 NumPy 数组对象
+
     auto getTrajectory(size_t n_steps, double step_size)
     {
         std::vector<std::array<double, Dim>> trajectory;
         trajectory.reserve(n_steps);
+        auto start_time = std::chrono::steady_clock::now();
         for (size_t i = 0; i < n_steps; i++)
         {
             eulerMaruyamaStep(step_size);
             trajectory.push_back(current_position.x);
         }
+        auto end_time = std::chrono::steady_clock::now();
+        std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "[ms]" << std::endl;
 
         return std::make_shared<std::vector<std::array<double, Dim>>>(trajectory);
     }
@@ -107,7 +112,12 @@ public:
     
     BatchedOverdampedLangevin(double _kbT, force_callable _force, const std::vector<position<Dim>>& _init)
         : kbT(_kbT), force(_force), initial_positions(_init)
+    {}
+
+    BatchedOverdampedLangevin(double _kbT, const std::vector<position<Dim>>& _init)
+        : kbT(_kbT), initial_positions(_init)
     {
+        force = [](position<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
     }
 
     ~BatchedOverdampedLangevin() = default;

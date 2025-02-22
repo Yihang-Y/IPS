@@ -10,3 +10,5 @@ debug*
 # ignore python files:
 *.py
 
+# ignore the .trace file
+*.trace
