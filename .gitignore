@@ -3,6 +3,7 @@ build/
 
 # ignore text files start with data
 data*
+output*
 
 # ignore debug files:
 debug*

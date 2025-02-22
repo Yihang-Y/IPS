@@ -140,7 +140,7 @@ public:
         if (n_threads == 0) {
             n_threads = 1; 
         }
-        std::cout << "system has " << n_threads << " threads" << std::endl;
+        std::cout << "# System has " << n_threads << " threads" << std::endl;
 
         size_t total_size = batch_size;
         size_t chunk = total_size / n_threads;
