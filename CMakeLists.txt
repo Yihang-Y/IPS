@@ -21,7 +21,7 @@ endif()
 
 #  use pybind11?
 if(USE_PYBIND)
-    message("USE_PYBIND is set")
+    message("USE_PYBIND11 is set")
 
     # ------------------------------------------------------------------------------
     # 3) find pybind11 and Python3
@@ -39,6 +39,7 @@ if(USE_PYBIND)
     pybind11_add_module(BrownianMotion ODModule.cpp)
 
     # compile options for the Python module
+    target_compile_definitions(BrownianMotion PRIVATE USE_PYBIND11)
     target_compile_options(BrownianMotion PRIVATE -Wall -fPIC)
 
     # set fsanitize=address for Debug mode
