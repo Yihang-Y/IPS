@@ -19,31 +19,36 @@ if(EXISTS /usr/bin/clang AND EXISTS /usr/bin/clang++)
     set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 endif()
 
-# ------------------------------------------------------------------------------
-# 3) find pybind11 and Python3
-# ------------------------------------------------------------------------------
-set(PYBIND11_FINDPYTHON True)
-find_package(pybind11 REQUIRED)
-include_directories(${pybind11_INCLUDE_DIRS})
+#  use pybind11?
+if(USE_PYBIND)
+    message("USE_PYBIND is set")
 
-find_package(Python3 3.13 REQUIRED COMPONENTS Development)
-include_directories(${Python3_INCLUDE_DIRS})
+    # ------------------------------------------------------------------------------
+    # 3) find pybind11 and Python3
+    # ------------------------------------------------------------------------------
+    set(PYBIND11_FINDPYTHON True)
+    find_package(pybind11 REQUIRED)
+    include_directories(${pybind11_INCLUDE_DIRS})
 
-# ------------------------------------------------------------------------------
-# 4) add Python module (compile ODModule.cpp)
-# ------------------------------------------------------------------------------
-pybind11_add_module(BrownianMotion ODModule.cpp)
+    find_package(Python3 3.13 REQUIRED COMPONENTS Development)
+    include_directories(${Python3_INCLUDE_DIRS})
 
-# compile options for the Python module
-target_compile_options(BrownianMotion PRIVATE -Wall -fPIC)
+    # ------------------------------------------------------------------------------
+    # 4) add Python module (compile ODModule.cpp)
+    # ------------------------------------------------------------------------------
+    pybind11_add_module(BrownianMotion ODModule.cpp)
 
-# set fsanitize=address for Debug mode
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(BrownianMotion PRIVATE -fsanitize=address)
-    target_link_options(BrownianMotion PRIVATE -fsanitize=address -undefined dynamic_lookup)
-else()
-    target_compile_options(BrownianMotion PRIVATE -O3)
-    target_link_options(BrownianMotion PRIVATE -O3 -undefined dynamic_lookup)
+    # compile options for the Python module
+    target_compile_options(BrownianMotion PRIVATE -Wall -fPIC)
+
+    # set fsanitize=address for Debug mode
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(BrownianMotion PRIVATE -fsanitize=address)
+        target_link_options(BrownianMotion PRIVATE -fsanitize=address -undefined dynamic_lookup)
+    else()
+        target_compile_options(BrownianMotion PRIVATE -O3)
+        target_link_options(BrownianMotion PRIVATE -O3 -undefined dynamic_lookup)
+    endif()
 endif()
 
 # ------------------------------------------------------------------------------

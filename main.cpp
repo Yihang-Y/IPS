@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
     // measure the time
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    auto traj = odLangevin.getTrajectory(10000000, 0.01);
+    auto traj = odLangevin.getTrajectory(1000000, 0.01);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     std::cout << "Time difference = " << one_time << "[ms]" << std::endl;

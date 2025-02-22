@@ -18,16 +18,20 @@
 #include <vector>
 #include <thread>
 #include <iostream>
+#include <memory>
+#include <chrono>
+
+
+#ifdef USE_PYBIND11
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include <pybind11/embed.h>
-#include <memory>
-#include <chrono>
-
 namespace py = pybind11;
+#endif
 
+#ifdef USE_PYBIND11
 template<int Dim>
 py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double, Dim>>> ptr)
 {
@@ -43,6 +47,7 @@ py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double,
         strides                              // strides, i.e. bytes to jump to get to the next element
     ));
 }
+#endif
 
 template<int Dim>
 struct position
@@ -77,22 +82,24 @@ public:
     {
         std::vector<std::array<double, Dim>> trajectory;
         trajectory.reserve(n_steps);
-        auto start_time = std::chrono::steady_clock::now();
+        // auto start_time = std::chrono::steady_clock::now();
         for (size_t i = 0; i < n_steps; i++)
         {
             eulerMaruyamaStep(step_size);
             trajectory.push_back(current_position.x);
         }
-        auto end_time = std::chrono::steady_clock::now();
-        std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "[ms]" << std::endl;
+        // auto end_time = std::chrono::steady_clock::now();
+        // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "[ms]" << std::endl;
 
         return std::make_shared<std::vector<std::array<double, Dim>>>(trajectory);
     }
 
+#ifdef USE_PYBIND11
     py::array getTrajectoryPy(size_t n_steps, double step_size)
     {
         return convert_from_shared_ptr<Dim>(getTrajectory(n_steps, step_size));
     }
+#endif
     
 
 private:
@@ -174,6 +181,7 @@ public:
         return trajectories;
     }
 
+#ifdef USE_PYBIND11
     py::list getBatchedTrajectoryPy(size_t n_steps, double step_size)
     {
         py::gil_scoped_release release;
@@ -187,6 +195,8 @@ public:
         }
         return py::list(out_list);
     }
+#endif
+
 private:
     double kbT;
     force_callable force;
