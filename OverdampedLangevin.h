@@ -50,21 +50,30 @@ py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double,
 #endif
 
 template<int Dim>
-struct position
+struct vec
 {
     std::array<double, Dim> x;
+    double operator*(const vec<Dim>& other) const
+    {
+        double result = 0;
+        for (size_t i = 0; i < Dim; i++)
+        {
+            result += x[i] * other.x[i];
+        }
+        return result;
+    }
 };
 
 template<int Dim>
 class OverdampedLangevin
 {
 public:
-    using force_callable = std::function<double(position<Dim>&)>;
-    OverdampedLangevin(double _kbT, force_callable _force, position<Dim> _init): kbT(_kbT), force(_force), current_position(_init){
+    using force_callable = std::function<double(vec<Dim>&)>;
+    OverdampedLangevin(double _kbT, force_callable _force, vec<Dim> _init): kbT(_kbT), force(_force), current_position(_init){
         generator.seed(std::random_device()());
     }
-    OverdampedLangevin(double _kbT, position<Dim> _init): kbT(_kbT), current_position(_init){
-        force = [](position<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+    OverdampedLangevin(double _kbT, vec<Dim> _init): kbT(_kbT), current_position(_init){
+        force = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
         generator.seed(std::random_device()());
     }
     ~OverdampedLangevin(){
@@ -105,7 +114,7 @@ public:
 private:
     double kbT;
     force_callable force;
-    position<Dim> current_position;
+    vec<Dim> current_position;
     std::mt19937 generator;
 };
 
@@ -115,16 +124,16 @@ template<int Dim>
 class BatchedOverdampedLangevin
 {
 public:
-    using force_callable = std::function<double(position<Dim>&)>;
+    using force_callable = std::function<double(vec<Dim>&)>;
     
-    BatchedOverdampedLangevin(double _kbT, force_callable _force, const std::vector<position<Dim>>& _init)
+    BatchedOverdampedLangevin(double _kbT, force_callable _force, const std::vector<vec<Dim>>& _init)
         : kbT(_kbT), force(_force), initial_positions(_init)
     {}
 
-    BatchedOverdampedLangevin(double _kbT, const std::vector<position<Dim>>& _init)
+    BatchedOverdampedLangevin(double _kbT, const std::vector<vec<Dim>>& _init)
         : kbT(_kbT), initial_positions(_init)
     {
-        force = [](position<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+        force = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
     }
 
     ~BatchedOverdampedLangevin() = default;
@@ -140,7 +149,7 @@ public:
         if (n_threads == 0) {
             n_threads = 1; 
         }
-        std::cout << "# System has " << n_threads << " threads" << std::endl;
+        // std::cout << "# System has " << n_threads << " threads" << std::endl;
 
         size_t total_size = batch_size;
         size_t chunk = total_size / n_threads;
@@ -200,5 +209,5 @@ public:
 private:
     double kbT;
     force_callable force;
-    std::vector<position<Dim>> initial_positions;
+    std::vector<vec<Dim>> initial_positions;
 };
