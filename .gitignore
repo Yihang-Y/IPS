@@ -8,8 +8,5 @@ output*
 # ignore debug files:
 debug*
 
-# ignore python files:
-*.py
-
 # ignore the .trace file
 *.trace

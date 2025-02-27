@@ -58,12 +58,12 @@ endif()
 add_executable(BrownianMotionMain main.cpp)
 
 # compile options for the executable
-target_compile_options(BrownianMotionMain PRIVATE -Wall -fPIC)
+target_compile_options(BrownianMotionMain PRIVATE -Wall -fPIC -pthread)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(BrownianMotionMain PRIVATE -fsanitize=address -pthread)
-    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address)
+    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address -pthread)
 else()
-    target_compile_options(BrownianMotionMain PRIVATE -O3)
-    target_link_options(BrownianMotionMain PRIVATE -O3)
+    target_compile_options(BrownianMotionMain PRIVATE -O3 -pthread)
+    target_link_options(BrownianMotionMain PRIVATE -O3 -pthread)
 endif()
