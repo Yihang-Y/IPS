@@ -53,7 +53,7 @@ template<int Dim>
 struct vec
 {
     std::array<double, Dim> x;
-    double operator*(const vec<Dim>& other) const
+    double operator*(const vec<Dim>& other) const // Q: do we need to do this? Can't we just use std::inner_product? and std::vector?
     {
         double result = 0;
         for (size_t i = 0; i < Dim; i++)
@@ -68,7 +68,7 @@ template<int Dim>
 class OverdampedLangevin
 {
 public:
-    using force_callable = std::function<double(vec<Dim>&)>;
+    using force_callable = std::function<double(vec<Dim>&)>; // type alias
     OverdampedLangevin(double _kbT, force_callable _force, vec<Dim> _init): kbT(_kbT), force(_force), current_position(_init){
         generator.seed(std::random_device()());
     }

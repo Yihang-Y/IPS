@@ -43,7 +43,10 @@ int main(int argc, char *argv[])
     size_t num_tasks = std::stoul(argv[3]);
 
     // double well force term:  F(x) = -dU/dx = -4x(x^2 - 1)
-    auto force_func = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+    auto force_func = [](vec<1>& pos) {
+        return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);
+    };
+
     if (num_tasks == 1)
     {
         auto init_pos = generate_random_init(1);
@@ -57,7 +60,7 @@ int main(int argc, char *argv[])
         // std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;
 
         // add a new line to separate the time and the trajectories
-        std::cout << std::endl;
+        // std::cout << std::endl;
 
         // output the trajectory
         // std::cout << "# Trajectory 0:" << std::endl;
