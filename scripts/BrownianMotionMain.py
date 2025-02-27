@@ -46,7 +46,7 @@ def BrownianMotionMain(n_steps: int, step_size: float, n_trajects: int, path_to_
         if use_wsl:
             result = subprocess.run(["wsl", "-e", path_to_exe, str(n_steps), str(step_size), str(n_trajects)], shell = True, capture_output = True)
         else:
-            result = subprocess.run([path_to_exe, str(n_steps), str(step_size), str(n_trajects)], shell = True, capture_output = True)
+            result = subprocess.run([path_to_exe, str(n_steps), str(step_size), str(n_trajects)], capture_output = True)
     except Exception as e:
         raise Exception("Problem running the executable: ", e)
     

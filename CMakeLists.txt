@@ -39,20 +39,23 @@ if(USE_PYBIND)
     # ------------------------------------------------------------------------------
     # 4) add Python module (compile ODModule.cpp)
     # ------------------------------------------------------------------------------
-    pybind11_add_module(BrownianMotion ODModule.cpp)
+    file(GLOB PYMODULES "pybind/*.cpp")
+    foreach(PYMODULE ${PYMODULES})
+        get_filename_component(PYMODULE_NAME ${PYMODULE} NAME_WE)
+        pybind11_add_module(${PYMODULE_NAME} ${PYMODULE})
+        target_compile_definitions(${PYMODULE_NAME} PRIVATE USE_PYBIND11)
+        target_compile_options(${PYMODULE_NAME} PRIVATE -Wall -fPIC)
 
-    # compile options for the Python module
-    target_compile_definitions(BrownianMotion PRIVATE USE_PYBIND11)
-    target_compile_options(BrownianMotion PRIVATE -Wall -fPIC)
-
-    # set fsanitize=address for Debug mode
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        target_compile_options(BrownianMotion PRIVATE -fsanitize=address)
-        target_link_options(BrownianMotion PRIVATE -fsanitize=address -undefined dynamic_lookup)
-    else()
-        target_compile_options(BrownianMotion PRIVATE -O3)
-        target_link_options(BrownianMotion PRIVATE -O3 -undefined dynamic_lookup)
-    endif()
+        # set fsanitize=address for Debug mode
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_compile_options(${PYMODULE_NAME} PRIVATE -fsanitize=address)
+            target_link_options(${PYMODULE_NAME} PRIVATE -fsanitize=address -undefined dynamic_lookup)
+        else()
+            target_compile_options(${PYMODULE_NAME} PRIVATE -O3)
+            target_link_options(${PYMODULE_NAME} PRIVATE -O3 -undefined dynamic_lookup)
+        endif()
+        
+    endforeach()
 endif()
 
 # ------------------------------------------------------------------------------

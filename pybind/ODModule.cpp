@@ -5,12 +5,8 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(BrownianMotion, m) {
+PYBIND11_MODULE(ODModule, m) {
     m.doc() = "Overdamped Langevin module"; // optional module docstring
-
-    py::class_<vec<1>>(m, "vec1")
-        .def(py::init<std::array<double, 1>>())
-        .def_readwrite("x", &vec<1>::x);
 
     py::class_<OverdampedLangevin<1>>(m, "OverdampedLangevin")
         .def(py::init<double, OverdampedLangevin<1>::force_callable, vec<1>>())
