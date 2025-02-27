@@ -11,6 +11,6 @@ debug*
 # ignore the .trace file
 *.trace
 
-# ignore __pycache__ folder and .vs floder
-__pycache__/
-.vs/
+# ignore all folders begin with __ or . (e.g. __pycache__)
+__*/
+.*/
