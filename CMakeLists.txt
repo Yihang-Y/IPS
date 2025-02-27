@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_BUILD_TYPE Release)
 
+# set the include directory globally
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 # ------------------------------------------------------------------------------
 # 2) use clang and clang++ if available
 # ------------------------------------------------------------------------------
@@ -53,17 +56,21 @@ if(USE_PYBIND)
 endif()
 
 # ------------------------------------------------------------------------------
-# 5) add executable (compile main.cpp)
+# 5) add executable (compile all cpp files in exmaple folder)
 # ------------------------------------------------------------------------------
-add_executable(BrownianMotionMain main.cpp)
 
-# compile options for the executable
-target_compile_options(BrownianMotionMain PRIVATE -Wall -fPIC -pthread)
+file(GLOB EXAMPLES "examples/*.cpp")
+foreach(EXAMPLE ${EXAMPLES})
+    get_filename_component(EXAMPLE_NAME ${EXAMPLE} NAME_WE)
+    add_executable(${EXAMPLE_NAME} ${EXAMPLE})
+    target_compile_options(${EXAMPLE_NAME} PRIVATE -Wall -pthread)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(BrownianMotionMain PRIVATE -fsanitize=address -pthread)
-    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address -pthread)
-else()
-    target_compile_options(BrownianMotionMain PRIVATE -O3 -pthread)
-    target_link_options(BrownianMotionMain PRIVATE -O3 -pthread)
-endif()
+    # set fsanitize=address for Debug mode
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(${EXAMPLE_NAME} PRIVATE -fsanitize=address -pthread)
+        target_link_options(${EXAMPLE_NAME} PRIVATE -fsanitize=address -pthread)
+    else()
+        target_compile_options(${EXAMPLE_NAME} PRIVATE -O3 -pthread)
+        target_link_options(${EXAMPLE_NAME} PRIVATE -O3 -pthread)
+    endif()
+endforeach()

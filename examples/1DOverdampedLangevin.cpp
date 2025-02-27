@@ -11,6 +11,11 @@
 
 #define NUM_TASKS 16
 
+// template<int Dim>
+// struct vec
+// {
+//     std::array<double, Dim> x;
+// };
 
 auto generate_random_init(size_t num) -> std::vector<vec<1>>{
     std::vector<vec<1>> inits;
@@ -43,10 +48,7 @@ int main(int argc, char *argv[])
     size_t num_tasks = std::stoul(argv[3]);
 
     // double well force term:  F(x) = -dU/dx = -4x(x^2 - 1)
-    auto force_func = [](vec<1>& pos) {
-        return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);
-    };
-
+    auto force_func = [](vec<1>& pos){return -4 * pos[0] * (pos[0] * pos[0] - 1);};
     if (num_tasks == 1)
     {
         auto init_pos = generate_random_init(1);

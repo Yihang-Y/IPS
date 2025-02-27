@@ -21,6 +21,8 @@
 #include <memory>
 #include <chrono>
 
+#include "vec.h"
+
 
 #ifdef USE_PYBIND11
 #include <pybind11/pybind11.h>
@@ -49,20 +51,6 @@ py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double,
 }
 #endif
 
-template<int Dim>
-struct vec
-{
-    std::array<double, Dim> x;
-    double operator*(const vec<Dim>& other) const // Q: do we need to do this? Can't we just use std::inner_product? and std::vector?
-    {
-        double result = 0;
-        for (size_t i = 0; i < Dim; i++)
-        {
-            result += x[i] * other.x[i];
-        }
-        return result;
-    }
-};
 
 template<int Dim>
 class OverdampedLangevin
@@ -73,7 +61,7 @@ public:
         generator.seed(std::random_device()());
     }
     OverdampedLangevin(double _kbT, vec<Dim> _init): kbT(_kbT), current_position(_init){
-        force = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+        force = [](vec<1>& pos){return -4 * pos[0] * (pos[0] * pos[0] - 1);};
         generator.seed(std::random_device()());
     }
     ~OverdampedLangevin(){
@@ -83,7 +71,7 @@ public:
         // update the position
         for (size_t i = 0; i < Dim; i++)
         {
-            current_position.x[i] += force(current_position) * step_size + std::sqrt(2 * kbT * step_size) * std::normal_distribution<double>(0, 1)(generator);
+            current_position[i] += force(current_position) * step_size + std::sqrt(2 * kbT * step_size) * std::normal_distribution<double>(0, 1)(generator);
         }
     }
 
@@ -95,7 +83,7 @@ public:
         for (size_t i = 0; i < n_steps; i++)
         {
             eulerMaruyamaStep(step_size);
-            trajectory.push_back(current_position.x);
+            trajectory.push_back(current_position);
         }
         // auto end_time = std::chrono::steady_clock::now();
         // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "[ms]" << std::endl;
@@ -133,7 +121,7 @@ public:
     BatchedOverdampedLangevin(double _kbT, const std::vector<vec<Dim>>& _init)
         : kbT(_kbT), initial_positions(_init)
     {
-        force = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+        force = [](vec<1>& pos){return -4 * pos[0] * (pos[0] * pos[0] - 1);};
     }
 
     ~BatchedOverdampedLangevin() = default;

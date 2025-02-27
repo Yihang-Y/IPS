@@ -1,0 +1,125 @@
+#pragma once
+#include <array>
+#include <functional>
+#include "Particles.h"
+
+
+template<DataLayout Layout, typename Derived>
+class IntegratorBase {
+public:
+    template <size_t Dim>
+    using pair_force_callable = std::function<double(double)>;
+    template <size_t Dim>
+    using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
+
+    template<size_t Dim, size_t NumParticles>
+    void integrate(Particles<Layout, Dim, NumParticles>& particles, 
+                    const pair_force_callable<Dim>& pair_force, 
+                    const confinement_force_callable<Dim>& confinement_force, 
+                    double step_size){
+        if constexpr (Layout == DataLayout::SoA)
+        {
+            static_cast<Derived*>(this)->integrate_on_soa(particles, pair_force, confinement_force, step_size);
+        }
+        else if constexpr (Layout == DataLayout::AoS)
+        {
+            static_cast<Derived*>(this)->integrate_on_aos(particles, pair_force, confinement_force, step_size);
+        }
+    }
+};
+
+class LeapFrog : public IntegratorBase<DataLayout::SoA, LeapFrog> {
+public:
+
+    template<size_t Dim, size_t NumParticles>
+    void integrate_on_soa(Particles<DataLayout::SoA, Dim, NumParticles>& particles, 
+                            const pair_force_callable<Dim>& pair_force, 
+                            const confinement_force_callable<Dim>& confinement_force, 
+                            double step_size){
+        constexpr size_t N = NumParticles;
+
+        // leap frog integration
+        // 1 update the half step velocities, use the forces from last step
+        double half_step = 0.5 * step_size;
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * particles.forces[d][i];
+            }
+        }
+        // 2 update the positions
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.positions[d][i] += step_size * particles.velocities[d][i];
+            }
+        }
+
+        // 3. use new positions to calculate the forces
+        std::array<std::array<double, N>, Dim> forces = {};
+
+        // 3.1 caculate the confinement forces
+        for (size_t i = 0; i < N; i++)
+        {
+            auto pos = particles.get_position(i);
+            auto conF = confinement_force(pos);
+            for (size_t d = 0; d < Dim; d++)
+            {
+                forces[d][i] += conF[d];
+            }
+        }
+
+        // 3.2. calculate the pair forces f_ij = - (d\phi(r_ij) / r_ij) * (q_i - q_j)
+
+        // 3.2.1 calculate the scalar coff: f_r = - (d\phi(r_ij) / r_ij)
+        // store them into a 2D array: pair_force_r[N][N]
+        std::array<std::array<double, N>, N> pair_force_r = {};
+        for (size_t i = 0; i < N; i++)
+        {
+            auto pos_i = particles.get_position(i);
+            for (size_t j = i + 1; j < N; j++)
+            {
+                auto pos_j = particles.get_position(j);
+                double r = 0;
+                for (size_t d = 0; d < Dim; d++)
+                {
+                    r += (pos_i[d] - pos_j[d]) * (pos_i[d] - pos_j[d]);
+                }
+                r = std::sqrt(r);
+                
+                double pairF = pair_force(r);
+                pair_force_r[i][j] = pairF;
+                pair_force_r[j][i] = pairF;
+            }
+        }
+        // 3.2.2 calculate the pair forces f_ij = f_r * (q_i - q_j) and update the forces
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                auto pos_i = particles.get_position(i);
+                for (size_t j = i + 1; j < N; j++)
+                {
+                    auto pos_j = particles.get_position(j);
+                    double f_ij = pair_force_r[i][j] * (pos_i[d] - pos_j[d]);
+                    forces[d][i] += f_ij;
+                    forces[d][j] -= f_ij;
+                }
+            }
+        }
+
+        // 4. update the velocities, using new forces
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * forces[d][i];
+            }
+        }
+
+        // 5. update the forces
+        particles.forces = forces;
+    }
+};
