@@ -12,9 +12,9 @@
 #define NUM_TASKS 16
 
 
-auto generate_random_init(size_t num) -> std::vector<position<1>>{
-    std::vector<position<1>> inits;
-    std::cout << "# Generating " << num << " random initial positions." << std::endl;
+auto generate_random_init(size_t num) -> std::vector<vec<1>>{
+    std::vector<vec<1>> inits;
+    // std::cout << "# Generating " << num << " random initial positions." << std::endl;
     inits.reserve(num);
     for (size_t i = 0; i < num; i++)
     {
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     size_t num_tasks = std::stoul(argv[3]);
 
     // double well force term:  F(x) = -dU/dx = -4x(x^2 - 1)
-    auto force_func = [](position<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
+    auto force_func = [](vec<1>& pos){return -4 * pos.x[0] * (pos.x[0] * pos.x[0] - 1);};
     if (num_tasks == 1)
     {
         auto init_pos = generate_random_init(1);
@@ -54,13 +54,15 @@ int main(int argc, char *argv[])
         auto traj = odLangevin.getTrajectory(n_steps, step_size);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-        std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;
+        // std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;
 
         // add a new line to separate the time and the trajectories
         std::cout << std::endl;
 
         // output the trajectory
-        std::cout << "# Trajectory 0:" << std::endl;
+        // std::cout << "# Trajectory 0:" << std::endl;
+        std::cout << "# NUM_STEPS: " << n_steps << std::endl;
+        std::cout << "# STEP_SIZE: " << step_size << std::endl;
         for (size_t i = 0; i < n_steps; i++)
         {
             std::cout << traj->at(i)[0] << " ";
@@ -74,15 +76,17 @@ int main(int argc, char *argv[])
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         auto batched_traj = b_odl.getBatchedTrajectory(n_steps, step_size);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "# Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
+        // std::cout << "# Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
         
         // add a new line to separate the time and the trajectories
-        std::cout << std::endl;
+        // std::cout << std::endl;
 
         // output the trajectories
         for (size_t i = 0; i < num_tasks; i++)
         {
-            std::cout << "# Trajectory " << i << ":" << std::endl;
+            // std::cout << "# Trajectory " << i << ":" << std::endl;
+            std::cout << "# NUM_STEPS: " << n_steps << std::endl;
+            std::cout << "# STEP_SIZE: " << step_size << std::endl;
             for (size_t j = 0; j < n_steps; j++)
             {
                 std::cout << batched_traj[i]->at(j)[0] << " ";
