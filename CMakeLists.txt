@@ -14,7 +14,7 @@ set(CMAKE_BUILD_TYPE Release)
 # ------------------------------------------------------------------------------
 # 2) use clang and clang++ if available
 # ------------------------------------------------------------------------------
-if(EXISTS /usr/bin/clang AND EXISTS /usr/bin/clang++)
+if(EXISTS /usr/bin/clang AND EXISTS /usr/bin/clang++) # what happens if these don't exist??
     set(CMAKE_C_COMPILER /usr/bin/clang)
     set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 endif()
@@ -61,9 +61,10 @@ add_executable(BrownianMotionMain main.cpp)
 target_compile_options(BrownianMotionMain PRIVATE -Wall -fPIC)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("debug mode")
     target_compile_options(BrownianMotionMain PRIVATE -fsanitize=address)
-    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address -undefined dynamic_lookup)
+    target_link_options(BrownianMotionMain PRIVATE -fsanitize=address -pthread)# -undefined dynamic_lookup)
 else()
     target_compile_options(BrownianMotionMain PRIVATE -O3)
-    target_link_options(BrownianMotionMain PRIVATE -O3 -undefined dynamic_lookup)
+    target_link_options(BrownianMotionMain PRIVATE -O3 -pthread)# -undefined dynamic_lookup)
 endif()
