@@ -10,3 +10,7 @@ debug*
 
 # ignore the .trace file
 *.trace
+
+# ignore __pycache__ folder and .vs floder
+__pycache__/
+.vs/
