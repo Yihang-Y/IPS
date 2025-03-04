@@ -22,6 +22,8 @@ if(EXISTS /usr/bin/clang AND EXISTS /usr/bin/clang++) # what happens if these do
     set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 endif()
 
+message("Using C++ compiler: ${CMAKE_CXX_COMPILER}\n")
+
 #  use pybind11?
 if(USE_PYBIND)
     message("USE_PYBIND11 is set")
