@@ -13,8 +13,8 @@ public:
     template <size_t Dim>
     using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
 
-    template<size_t Dim, size_t NumParticles>
-    void integrate(Particles<Layout, Dim, NumParticles>& particles, 
+    template<size_t Dim>
+    void integrate(Particles<Layout, Dim>& particles, 
                     const pair_force_callable<Dim>& pair_force, 
                     const confinement_force_callable<Dim>& confinement_force, 
                     double step_size){
@@ -32,12 +32,12 @@ public:
 class LeapFrog : public IntegratorBase<DataLayout::SoA, LeapFrog> {
 public:
 
-    template<size_t Dim, size_t NumParticles>
-    void integrate_on_soa(Particles<DataLayout::SoA, Dim, NumParticles>& particles, 
+    template<size_t Dim>
+    void integrate_on_soa(Particles<DataLayout::SoA, Dim>& particles, 
                             const pair_force_callable<Dim>& pair_force, 
                             const confinement_force_callable<Dim>& confinement_force, 
                             double step_size){
-        constexpr size_t N = NumParticles;
+        const size_t N = particles.positions[0].size();
 
         // leap frog integration
         // 1 update the half step velocities, use the forces from last step
@@ -59,7 +59,12 @@ public:
         }
 
         // 3. use new positions to calculate the forces
-        std::array<std::array<double, N>, Dim> forces = {};
+        // std::array<std::array<double, N>, Dim> forces = {};
+        std::array<std::vector<double>, Dim> forces = {};
+        for (size_t d = 0; d < Dim; d++)
+        {
+            forces[d].resize(N);
+        }
 
         // 3.1 caculate the confinement forces
         for (size_t i = 0; i < N; i++)
@@ -76,7 +81,7 @@ public:
 
         // 3.2.1 calculate the scalar coff: f_r = - (d\phi(r_ij) / r_ij)
         // store them into a 2D array: pair_force_r[N][N]
-        std::array<std::array<double, N>, N> pair_force_r = {};
+        std::vector<std::vector<double>> pair_force_r(N, std::vector<double>(N, 0));
         for (size_t i = 0; i < N; i++)
         {
             auto pos_i = particles.get_position(i);

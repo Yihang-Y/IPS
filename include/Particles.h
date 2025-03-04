@@ -1,4 +1,9 @@
 #include "vec.h"
+#include <vector>
+#include <array>
+#include <random>
+#include <stdexcept>
+
 
 enum class DataLayout
 {
@@ -11,21 +16,21 @@ enum class DataLayout
  * Uses SoA to store the particle system, which is more cache-friendly and might be helpful for the design of the integrator.
  * 
  * @tparam Dim 
- * @tparam NumParticles 
  */
-template<DataLayout Layout, size_t Dim, size_t NumParticles>
+template<DataLayout Layout, size_t Dim>
 struct Particles;
 
-template<size_t Dim, size_t NumParticles>
-struct Particles<DataLayout::SoA, Dim, NumParticles>
+template<size_t Dim>
+struct Particles<DataLayout::SoA, Dim>
 {
-    std::array<std::array<double, NumParticles>, Dim> positions = {};
-    std::array<std::array<double, NumParticles>, Dim> velocities = {};
-    std::array<std::array<double, NumParticles>, Dim> forces = {};
+    std::array<std::vector<double>, Dim> positions = {};
+    std::array<std::vector<double>, Dim> velocities = {};
+    std::array<std::vector<double>, Dim> forces = {};
 
     // function to get the position of the i'th particle.
     vec<Dim> get_position(size_t i) const
     {
+        size_t NumParticles = positions[0].size();
         if (i >= NumParticles) {
             throw std::invalid_argument("Requested particle " + std::to_string(i+1) + " but there are only " + std::to_string(NumParticles) + " particles. Note zero indexing.");
         } 
@@ -38,3 +43,30 @@ struct Particles<DataLayout::SoA, Dim, NumParticles>
         return pos;
     }
 };
+
+
+template<DataLayout Layout, size_t Dim>
+auto generate_random_init(size_t num, double pmin, double pmax, double vmin, double vmax)
+{
+    Particles<Layout, Dim> particles;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis_p(pmin, pmax);
+    std::uniform_real_distribution<> dis_v(vmin, vmax);
+    for (size_t d = 0; d < Dim; d++) {
+        particles.positions[d].reserve(num);
+        particles.velocities[d].reserve(num);
+        particles.forces[d].reserve(num);
+    }
+
+    for (size_t i = 0; i < num; i++)
+    {
+        for (size_t j = 0; j < Dim; j++)
+        {
+            particles.positions[j].push_back(dis_p(gen));
+            particles.velocities[j].push_back(dis_v(gen));
+            particles.forces[j].push_back(0);
+        }
+    }
+    return particles;
+}

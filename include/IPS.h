@@ -2,7 +2,7 @@
 #include "Integrator.h"
 #include <memory>
 
-template<DataLayout Layout, size_t Dim, size_t NumParticles, typename Integrator>
+template<DataLayout Layout, size_t Dim, typename Integrator>
 class IPS_Simulator
 {
 public:
@@ -14,7 +14,7 @@ public:
      * 
      */
     IPS_Simulator(pair_force_callable _pair_force, confinement_force_callable _confinement_force,
-                  Particles<Layout, Dim, NumParticles> _particles,
+                  Particles<Layout, Dim> _particles,
                   std::unique_ptr<Integrator> _integrator)
         : pair_force(_pair_force), confinement_force(_confinement_force), particles(_particles), integrator(std::move(_integrator))
     {}
@@ -26,7 +26,7 @@ public:
 public:
     pair_force_callable pair_force;
     confinement_force_callable confinement_force;
-    Particles<Layout, Dim, NumParticles> particles;
+    Particles<Layout, Dim> particles;
     std::unique_ptr<Integrator> integrator;
 
 };

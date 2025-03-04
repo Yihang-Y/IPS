@@ -4,6 +4,7 @@ build/
 # ignore text files start with data
 data*
 output*
+local*
 
 # ignore debug files:
 debug*
@@ -14,3 +15,7 @@ debug*
 # ignore all folders begin with __ or . (e.g. __pycache__)
 __*/
 .*/
+
+# ignore gif files
+*.gif
+*.html
