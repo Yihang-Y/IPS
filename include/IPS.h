@@ -1,5 +1,6 @@
 #pragma once
 #include "Integrator.h"
+#include <memory>
 
 template<DataLayout Layout, size_t Dim, size_t NumParticles, typename Integrator>
 class IPS_Simulator
