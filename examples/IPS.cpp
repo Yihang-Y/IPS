@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <string>
 #include "IPS.h"
 #include "Integrator.h"
 #include <chrono>
@@ -11,7 +12,7 @@ int main(int argc, char const *argv[])
 {
     if (argc != 6)
     {
-        std::cerr << "Usage: " << argv[0] << " n_steps step_size num_particles dim" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " n_steps step_size num_particles dim output_interval" << std::endl;
         return 1;
     }
 
