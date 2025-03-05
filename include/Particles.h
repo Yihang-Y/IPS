@@ -1,9 +1,11 @@
+#pragma once
 #include "vec.h"
 #include <vector>
 #include <array>
 #include <random>
 #include <stdexcept>
 
+#include "utils.h"
 
 enum class DataLayout
 {
@@ -42,6 +44,32 @@ struct Particles<DataLayout::SoA, Dim>
         }
         return pos;
     }
+
+#ifdef USE_PYBIND11
+    py::list get_positions() {
+        py::list result;
+        for (size_t d = 0; d < Dim; ++d) {
+            result.append(vector_to_array(positions[d]));
+        }
+        return result;
+    }
+
+    py::list get_velocities() {
+        py::list result;
+        for (size_t d = 0; d < Dim; ++d) {
+            result.append(vector_to_array(velocities[d]));
+        }
+        return result;
+    }
+
+    py::list get_forces() {
+        py::list result;
+        for (size_t d = 0; d < Dim; ++d) {
+            result.append(vector_to_array(forces[d]));
+        }
+        return result;
+    }
+#endif
 };
 
 

@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
         auto confinement_force = RadialConfinement<dim>(2.0);
 
         auto particles = generate_random_init<DataLayout::SoA, dim>(num_particles, -1, 1, -2, 2);
-        auto integrator = std::make_unique<LeapFrog>();
+        auto integrator = LeapFrog();
         IPS_Simulator<DataLayout::SoA, dim, LeapFrog> ips(pair_force, confinement_force,
                                             particles, std::move(integrator)); 
 
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[])
         auto confinement_force = RadialConfinement<dim>(2.0);
 
         auto particles = generate_random_init<DataLayout::SoA, dim>(num_particles, -1, 1, -2, 2);
-        auto integrator = std::make_unique<LeapFrog>();
+        auto integrator = LeapFrog();
         IPS_Simulator<DataLayout::SoA, dim, LeapFrog> ips(pair_force, confinement_force,
                                             particles, std::move(integrator));
 

@@ -45,6 +45,7 @@ if(USE_PYBIND)
     foreach(PYMODULE ${PYMODULES})
         get_filename_component(PYMODULE_NAME ${PYMODULE} NAME_WE)
         pybind11_add_module(${PYMODULE_NAME} ${PYMODULE})
+        message("Adding Python module: ${PYMODULE_NAME}")
         target_compile_definitions(${PYMODULE_NAME} PRIVATE USE_PYBIND11)
         target_compile_options(${PYMODULE_NAME} PRIVATE -Wall -fPIC)
 
