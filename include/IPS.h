@@ -25,7 +25,7 @@ public:
     {
         pair_force = Spring(1.0, 1.0);
         confinement_force = RadialConfinement<Dim>(2.0);
-        integrator = LeapFrog();
+        integrator = Integrator();
     }
 
     void integrate(double step_size) {

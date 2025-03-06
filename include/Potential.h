@@ -107,7 +107,8 @@ private:
     double rad;
 };
 
-
+// FIXME: should use more reflection to make the code more generic, so we don't need to write the same code again and again
+// but for now, it works.
 auto make_pair_force(const Config& config) -> std::function<double(double)> {
     auto type = config.get<std::string>("type", "LennardJones");
     if (type == "LennardJones") {
@@ -122,8 +123,6 @@ auto make_pair_force(const Config& config) -> std::function<double(double)> {
         throw std::invalid_argument("Unknown pair force type: " + type);
     }
 }
-
-// based on the name, reflect the type of the confinement force
 
 auto make_confinement_force(const Config& config) -> std::function<vec<2>(const vec<2>&)> {
     auto type = config.get<std::string>("type", "Harmonic");

@@ -29,6 +29,9 @@ struct Particles<DataLayout::SoA, Dim>
     std::array<std::vector<double>, Dim> velocities = {};
     std::array<std::vector<double>, Dim> forces = {};
 
+    // FIXME: I will find a better way to store the temperature, like use another class named "ParticlesStochastic"
+    // while for easy to implement, I just add a temperature here.
+    double temperature = 0;
     // function to get the position of the i'th particle.
     vec<Dim> get_position(size_t i) const
     {
@@ -45,6 +48,7 @@ struct Particles<DataLayout::SoA, Dim>
         return pos;
     }
 
+// NOTE: the code below is for pybind11, do not call them in C++ code
 #ifdef USE_PYBIND11
     py::list get_positions() {
         py::list result;
@@ -68,6 +72,10 @@ struct Particles<DataLayout::SoA, Dim>
             result.append(vector_to_array(forces[d]));
         }
         return result;
+    }
+
+    double* get_temperature() {
+        return &temperature;
     }
 #endif
 };
