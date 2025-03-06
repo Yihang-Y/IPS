@@ -60,7 +60,7 @@ def BrownianMotionMain(n_steps: int, step_size: float, n_trajects: int, path_to_
         return trajectories
     
 
-def read_ips_particle_data(output_dump) -> List[np.array]:
+def read_ips_particle_data(output_dump, dim: int) -> List[np.array]:
     # read data from file
     # each line is the position of a particle at a given time
     # and between different time steps there is a blank line
@@ -71,7 +71,7 @@ def read_ips_particle_data(output_dump) -> List[np.array]:
         block_data = []
         for line in block.split('\n'):
             try:
-                arr = list(map(float, line.split(" ")))[:2]
+                arr = list(map(float, line.split(" ")))[:dim]
             except ValueError:
                 print(f"Error reading line: {line}")
                 continue
@@ -109,6 +109,6 @@ def IPS(n_steps: int, step_size: float, num_particles: int, dim: int, output_int
         raise Exception("Error during calculations: ", result.stderr.decode("ascii"))
     else:
         decoded_output = result.stdout.decode("ascii")
-        trajectories = read_ips_particle_data(decoded_output)
+        trajectories = read_ips_particle_data(decoded_output, dim)
 
         return trajectories
