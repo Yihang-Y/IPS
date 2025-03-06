@@ -11,17 +11,39 @@ namespace py = pybind11;
 
 template struct Particles<DataLayout::SoA, 2>;
 
+ConfigValue cast_config_value(py::handle value) {
+    if (py::isinstance<py::int_>(value)) {
+        return value.cast<int>();
+    } else if (py::isinstance<py::float_>(value)) {
+        return value.cast<double>();
+    } else if (py::isinstance<py::bool_>(value)) {
+        return value.cast<bool>();
+    } else if (py::isinstance<py::str>(value)) {
+        return value.cast<std::string>();
+    } else {
+        throw std::runtime_error("Unsupported config value type");
+    }
+}
+
 PYBIND11_MODULE(IPSModule, m) {
     m.doc() = "IPS module"; // optional module docstring
 
     py::class_<IPS_Simulator<DataLayout::SoA, 2, LeapFrog>>(m, "IPS_Simulator")
-        // .def(py::init<IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::pair_force_callable, 
-        //               IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::confinement_force_callable,
-        //               Particles<DataLayout::SoA, 2>&>(),
-        //               LeapFrog())
         .def(py::init<Particles<DataLayout::SoA, 2>&>())
-        // .def(py::init<SpringConfig, RadialConfinementConfig, Particles<DataLayout::SoA, 2>&>())
-        // .def(py::init<Particles<DataLayout::SoA, 2>&>())
+        .def("init", [](IPS_Simulator<DataLayout::SoA, 2, LeapFrog>& self,
+                        py::dict pair_force_config,
+                        py::dict confinement_force_config) {
+            Config pair_force_config_cpp;
+            Config confinement_force_config_cpp;
+            for (auto item : pair_force_config) {
+                pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            for (auto item : confinement_force_config) {
+                confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            self.pair_force = make_pair_force(pair_force_config_cpp);
+            self.confinement_force = make_confinement_force(confinement_force_config_cpp);
+        })
         .def("integrate", &IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::integrate)
         .def("integrate_n_steps", &IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::integrate_n_steps);
 
@@ -58,11 +80,11 @@ PYBIND11_MODULE(IPSModule, m) {
         .def("get_velocities", &Particles<DataLayout::SoA, 2>::get_velocities)
         .def("get_forces", &Particles<DataLayout::SoA, 2>::get_forces);
 
-    py::class_<SpringConfig>(m, "SpringConfig")
-        .def(py::init<double, double>(), py::arg("k"), py::arg("r0"));
+    // py::class_<SpringConfig>(m, "SpringConfig")
+    //     .def(py::init<double, double>(), py::arg("k"), py::arg("r0"));
     
-    py::class_<RadialConfinementConfig>(m, "RadialConfinementConfig")
-        .def(py::init<double>(), py::arg("rad"));
+    // py::class_<RadialConfinementConfig>(m, "RadialConfinementConfig")
+    //     .def(py::init<double>(), py::arg("rad"));
 
     // NOTE: useless, if it is bind to python, when C++ code call operator(), it will call the python function
     // py::class_<Spring>(m, "Spring")

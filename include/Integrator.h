@@ -42,7 +42,7 @@ public:
         const size_t N = particles.positions[0].size();
 
         // leap frog integration
-        // 1 update the half step velocities, use the forces from last step
+        // 1. update the half step velocities, use the forces from last step
         double half_step = 0.5 * step_size;
         for (size_t d = 0; d < Dim; d++)
         {
@@ -51,7 +51,7 @@ public:
                 particles.velocities[d][i] += half_step * particles.forces[d][i];
             }
         }
-        // 2 update the positions
+        // 2. update the positions
         for (size_t d = 0; d < Dim; d++)
         {
             for (size_t i = 0; i < N; i++)

@@ -28,15 +28,6 @@ public:
         integrator = LeapFrog();
     }
 
-    // template<typename Config1, typename Config2>
-    // IPS_Simulator(Particles<Layout, Dim>& _particles, const Config1& config1, const Config2& config2)
-    //     : particles(_particles)
-    // {
-    //     pair_force = make_potential(config1);
-    //     confinement_force = make_potential(config2);
-    //     integrator = LeapFrog();
-    // }
-
     void integrate(double step_size) {
         integrator.integrate(particles, pair_force, confinement_force, step_size);
     }
