@@ -74,6 +74,18 @@ struct Particles<DataLayout::SoA, Dim>
 
 
 template<DataLayout Layout, size_t Dim>
+
+/**
+ * @brief Generates initial values for particle positions and velocities by uniformly sampling between
+ pmin and pmax for position and vmin and vmax for velocity. Initial forces set to 0.
+ * 
+ * @param num number of particles
+ * @param pmin minimum position value (in each coordinate)
+ * @param pmax max position value
+ * @param vmin min velocity value
+ * @param vmax max velocity value
+ * @return auto Particles object
+ */
 auto generate_random_init(size_t num, double pmin, double pmax, double vmin, double vmax)
 {
     Particles<Layout, Dim> particles;

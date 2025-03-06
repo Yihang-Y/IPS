@@ -84,10 +84,12 @@ int main(int argc, char const *argv[])
                     {
                         std::cout << ips.particles.velocities[d][j] << " ";
                     }
-                    for (size_t d = 0; d < dim; d++)
+                    for (size_t d = 0; d < dim-1; d++)
                     {
                         std::cout << ips.particles.forces[d][j] << " ";
                     }
+                    // we do this separately so that there is no " " at the end of the line, which causes problems when reading the particle data
+                    std::cout << ips.particles.forces[2][j]; // TODO: make this more generalisable
                     std::cout << std::endl;
                 }
                 std::cout << std::endl;
