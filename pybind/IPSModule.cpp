@@ -28,9 +28,9 @@ ConfigValue cast_config_value(py::handle value) {
 PYBIND11_MODULE(IPSModule, m) {
     m.doc() = "IPS module"; // optional module docstring
 
-    py::class_<IPS_Simulator<DataLayout::SoA, 2, LeapFrog>>(m, "IPS_Simulator")
+    py::class_<IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>>(m, "IPS_Simulator")
         .def(py::init<Particles<DataLayout::SoA, 2>&>())
-        .def("init", [](IPS_Simulator<DataLayout::SoA, 2, LeapFrog>& self,
+        .def("init", [](IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>& self,
                         py::dict pair_force_config,
                         py::dict confinement_force_config) {
             Config pair_force_config_cpp;
@@ -44,27 +44,27 @@ PYBIND11_MODULE(IPSModule, m) {
             self.pair_force = make_pair_force(pair_force_config_cpp);
             self.confinement_force = make_confinement_force(confinement_force_config_cpp);
         })
-        .def("integrate", &IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::integrate)
-        .def("integrate_n_steps", &IPS_Simulator<DataLayout::SoA, 2, LeapFrog>::integrate_n_steps);
+        .def("integrate", &IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>::integrate)
+        .def("integrate_n_steps", &IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>::integrate_n_steps);
 
-    py::class_<IPS_Simulator<DataLayout::SoA, 2, BAOAB>>(m, "IPS_Simulator")
-        .def(py::init<Particles<DataLayout::SoA, 2>&>())
-        .def("init", [](IPS_Simulator<DataLayout::SoA, 2, BAOAB>& self,
-                        py::dict pair_force_config,
-                        py::dict confinement_force_config) {
-            Config pair_force_config_cpp;
-            Config confinement_force_config_cpp;
-            for (auto item : pair_force_config) {
-                pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
-            }
-            for (auto item : confinement_force_config) {
-                confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
-            }
-            self.pair_force = make_pair_force(pair_force_config_cpp);
-            self.confinement_force = make_confinement_force(confinement_force_config_cpp);
-        })
-        .def("integrate", &IPS_Simulator<DataLayout::SoA, 2, BAOAB>::integrate)
-        .def("integrate_n_steps", &IPS_Simulator<DataLayout::SoA, 2, BAOAB>::integrate_n_steps);
+    // py::class_<IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>>(m, "IPS_Simulator")
+    //     .def(py::init<Particles<DataLayout::SoA, 2>&>())
+    //     .def("init", [](IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>& self,
+    //                     py::dict pair_force_config,
+    //                     py::dict confinement_force_config) {
+    //         Config pair_force_config_cpp;
+    //         Config confinement_force_config_cpp;
+    //         for (auto item : pair_force_config) {
+    //             pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+    //         }
+    //         for (auto item : confinement_force_config) {
+    //             confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+    //         }
+    //         self.pair_force = make_pair_force(pair_force_config_cpp);
+    //         self.confinement_force = make_confinement_force(confinement_force_config_cpp);
+    //     })
+    //     .def("integrate", &IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>::integrate)
+    //     .def("integrate_n_steps", &IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>::integrate_n_steps);
 
     py::class_<Particles<DataLayout::SoA, 2>>(m, "Particles")
         .def(py::init([](size_t n_particles) {

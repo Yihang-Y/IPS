@@ -5,41 +5,41 @@
 #include "Particles.h"
 
 
-template<DataLayout Layout, typename Derived>
+template<typename Derived>
 class IntegratorBase {
 public:
-    template <size_t Dim>
     using pair_force_callable = std::function<double(double)>;
     template <size_t Dim>
     using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
 
-    template<size_t Dim>
-    void integrate(Particles<Layout, Dim>& particles, 
-                    const pair_force_callable<Dim>& pair_force, 
-                    const confinement_force_callable<Dim>& confinement_force, 
+    template<typename Particles>
+    void integrate(Particles& particles, 
+                    const pair_force_callable& pair_force, 
+                    const confinement_force_callable<Particles::DimVal>& confinement_force,
                     double step_size){
-        if constexpr (Layout == DataLayout::SoA)
+        if constexpr (Particles::Layout == DataLayout::SoA)
         {
             static_cast<Derived*>(this)->integrate_on_soa(particles, pair_force, confinement_force, step_size);
         }
-        else if constexpr (Layout == DataLayout::AoS)
+        else if constexpr (Particles::Layout == DataLayout::AoS)
         {
             static_cast<Derived*>(this)->integrate_on_aos(particles, pair_force, confinement_force, step_size);
         }
     }
 };
 
-class LeapFrog : public IntegratorBase<DataLayout::SoA, LeapFrog> {
+class LeapFrog : public IntegratorBase<LeapFrog> {
 public:
 
-    template<size_t Dim>
-    void integrate_on_soa(Particles<DataLayout::SoA, Dim>& particles, 
-                            const pair_force_callable<Dim>& pair_force, 
-                            const confinement_force_callable<Dim>& confinement_force, 
+    template<typename Particles>
+    void integrate_on_soa(Particles& particles,
+                            const pair_force_callable& pair_force,
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
                             double step_size){
         // does one time step
         
         const size_t N = particles.positions[0].size();
+        constexpr size_t Dim = Particles::DimVal;
 
         // leap frog integration
         // 1. update the half step velocities, use the forces from last step
@@ -130,9 +130,16 @@ public:
         // 5. update the forces
         particles.forces = forces;
     }
+
+    template<typename Particles>
+    void integrate_on_aos(Particles& particles,
+                            const pair_force_callable& pair_force,
+                            const confinement_force_callable<Particles::Dim>& confinement_force,
+                            double step_size){}
+       
 };
 
-class BAOAB : public IntegratorBase<DataLayout::SoA, BAOAB> {
+class BAOAB : public IntegratorBase<BAOAB> {
 
 public:
 
@@ -145,10 +152,10 @@ public:
      * @param confinement_force: callable object, confinement_force(pos) return the force on the particle at pos
      * @param step_size 
      */
-    template<size_t Dim>
-    void integrate_on_soa(Particles<DataLayout::SoA, Dim>& particles, 
-                            const pair_force_callable<Dim>& pair_force, 
-                            const confinement_force_callable<Dim>& confinement_force, 
+    template<typename Particles>
+    void integrate_on_soa(Particles& particles,
+                            const pair_force_callable& pair_force, 
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
                             double step_size){
     
     }

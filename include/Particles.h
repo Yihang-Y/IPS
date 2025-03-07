@@ -25,6 +25,9 @@ struct Particles;
 template<size_t Dim>
 struct Particles<DataLayout::SoA, Dim>
 {
+    constexpr static size_t DimVal = Dim;
+    constexpr static DataLayout Layout = DataLayout::SoA;
+
     std::array<std::vector<double>, Dim> positions = {};
     std::array<std::vector<double>, Dim> velocities = {};
     std::array<std::vector<double>, Dim> forces = {};
