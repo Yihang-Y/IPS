@@ -10,6 +10,7 @@
 namespace py = pybind11;
 
 template struct Particles<DataLayout::SoA, 2>;
+template struct LangevinSystem<2>;
 
 ConfigValue cast_config_value(py::handle value) {
     if (py::isinstance<py::int_>(value)) {
@@ -47,24 +48,24 @@ PYBIND11_MODULE(IPSModule, m) {
         .def("integrate", &IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>::integrate)
         .def("integrate_n_steps", &IPS_Simulator<Particles<DataLayout::SoA, 2>, LeapFrog>::integrate_n_steps);
 
-    // py::class_<IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>>(m, "IPS_Simulator")
-    //     .def(py::init<Particles<DataLayout::SoA, 2>&>())
-    //     .def("init", [](IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>& self,
-    //                     py::dict pair_force_config,
-    //                     py::dict confinement_force_config) {
-    //         Config pair_force_config_cpp;
-    //         Config confinement_force_config_cpp;
-    //         for (auto item : pair_force_config) {
-    //             pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
-    //         }
-    //         for (auto item : confinement_force_config) {
-    //             confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
-    //         }
-    //         self.pair_force = make_pair_force(pair_force_config_cpp);
-    //         self.confinement_force = make_confinement_force(confinement_force_config_cpp);
-    //     })
-    //     .def("integrate", &IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>::integrate)
-    //     .def("integrate_n_steps", &IPS_Simulator<Particles<DataLayout::SoA, 2>, BAOAB>::integrate_n_steps);
+    py::class_<IPS_Simulator<LangevinSystem<2>, ABOBA>>(m, "IPS_Simulator_Langevin")
+        .def(py::init<LangevinSystem<2>&>())
+        .def("init", [](IPS_Simulator<LangevinSystem<2>, ABOBA>& self,
+                        py::dict pair_force_config,
+                        py::dict confinement_force_config) {
+            Config pair_force_config_cpp;
+            Config confinement_force_config_cpp;
+            for (auto item : pair_force_config) {
+                pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            for (auto item : confinement_force_config) {
+                confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            self.pair_force = make_pair_force(pair_force_config_cpp);
+            self.confinement_force = make_confinement_force(confinement_force_config_cpp);
+        })
+        .def("integrate", &IPS_Simulator<LangevinSystem<2>, ABOBA>::integrate)
+        .def("integrate_n_steps", &IPS_Simulator<LangevinSystem<2>, ABOBA>::integrate_n_steps);
 
     py::class_<Particles<DataLayout::SoA, 2>>(m, "Particles")
         .def(py::init([](size_t n_particles) {
@@ -81,8 +82,24 @@ PYBIND11_MODULE(IPSModule, m) {
         .def_readwrite("forces", &Particles<DataLayout::SoA, 2>::forces)
         .def("get_positions", &Particles<DataLayout::SoA, 2>::get_positions)
         .def("get_velocities", &Particles<DataLayout::SoA, 2>::get_velocities)
-        .def("get_forces", &Particles<DataLayout::SoA, 2>::get_forces)
-        .def("get_temperature", &Particles<DataLayout::SoA, 2>::get_temperature);
+        .def("get_forces", &Particles<DataLayout::SoA, 2>::get_forces);
+
+    py::class_<LangevinSystem<2>, Particles<DataLayout::SoA, 2>>(m, "LangevinSystem")
+        .def(py::init([](size_t n_particles, double gamma, double temperature) {
+                LangevinSystem<2> p;
+                p.gamma = gamma;
+                p.temperature = temperature;
+                for (size_t d = 0; d < 2; ++d) {
+                    p.positions[d].resize(n_particles);
+                    p.velocities[d].resize(n_particles);
+                    p.forces[d].resize(n_particles);
+                }
+                return p;
+            }), py::arg("n_particles"), py::arg("gamma"), py::arg("temperature"))
+        .def_readwrite("gamma", &LangevinSystem<2>::gamma)
+        .def_readwrite("temperature", &LangevinSystem<2>::temperature)
+        .def("get_gamma", &LangevinSystem<2>::get_gamma)
+        .def("get_temperature", &LangevinSystem<2>::get_temperature);
 
 
     // NOTE: useless, if it is bind to python, when C++ code call operator(), it will call the python function
