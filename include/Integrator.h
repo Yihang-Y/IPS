@@ -131,3 +131,25 @@ public:
         particles.forces = forces;
     }
 };
+
+class BAOAB : public IntegratorBase<DataLayout::SoA, BAOAB> {
+
+public:
+
+    /**
+     * @brief Implement the BAOAB integrator for the system
+     * 
+     * @tparam Dim 
+     * @param particles: with positions, velocities, forces in SOA and temperature 
+     * @param pair_force: callable object, pair_force(r_ij) return the force between particle i and j, need to * (q_i - q_j) to get the real force
+     * @param confinement_force: callable object, confinement_force(pos) return the force on the particle at pos
+     * @param step_size 
+     */
+    template<size_t Dim>
+    void integrate_on_soa(Particles<DataLayout::SoA, Dim>& particles, 
+                            const pair_force_callable<Dim>& pair_force, 
+                            const confinement_force_callable<Dim>& confinement_force, 
+                            double step_size){
+    
+    }
+};
