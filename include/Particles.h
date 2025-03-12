@@ -25,13 +25,13 @@ struct Particles;
 template<size_t Dim>
 struct Particles<DataLayout::SoA, Dim>
 {
+    constexpr static size_t DimVal = Dim;
+    constexpr static DataLayout Layout = DataLayout::SoA;
+
     std::array<std::vector<double>, Dim> positions = {};
     std::array<std::vector<double>, Dim> velocities = {};
     std::array<std::vector<double>, Dim> forces = {};
 
-    // FIXME: I will find a better way to store the temperature, like use another class named "ParticlesStochastic"
-    // while for easy to implement, I just add a temperature here.
-    double temperature = 0;
     // function to get the position of the i'th particle.
     vec<Dim> get_position(size_t i) const
     {
@@ -73,13 +73,26 @@ struct Particles<DataLayout::SoA, Dim>
         }
         return result;
     }
+#endif
+};
+
+
+template<size_t Dim>
+struct LangevinSystem : public Particles<DataLayout::SoA, Dim>
+{
+    double gamma = 1.0;
+    double temperature = 1.0;
+
+#ifdef USE_PYBIND11
+    double* get_gamma() {
+        return &gamma;
+    }
 
     double* get_temperature() {
         return &temperature;
     }
 #endif
 };
-
 
 template<DataLayout Layout, size_t Dim>
 

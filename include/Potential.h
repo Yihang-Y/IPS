@@ -40,9 +40,10 @@ public:
         double sigma12 = sigma6 * sigma6;
 
         double r6 = r * r * r * r * r * r;
-        double r12 = r6 * r6;
+        double r8 = r6 * r * r;
+        double r14 = r6 * r8;
 
-        return 4 * eps * (sigma12 / r12 - sigma6 / r6);
+        return 24 * eps * ( -2 * sigma12 / r14 + sigma6 / r8);
     }
 
     REFLECT(eps, sigma);

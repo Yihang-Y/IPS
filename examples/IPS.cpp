@@ -33,9 +33,9 @@ int main(int argc, char const *argv[])
 
         auto particles = generate_random_init<DataLayout::SoA, dim>(num_particles, -1, 1, -2, 2);
         auto integrator = LeapFrog();
-        IPS_Simulator<DataLayout::SoA, dim, LeapFrog> ips(pair_force, confinement_force,
-                                            particles, std::move(integrator)); 
-
+        IPS_Simulator<decltype(particles), decltype(integrator)> ips(particles);
+        ips.pair_force = pair_force;
+        ips.confinement_force = confinement_force;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         for (size_t i = 0; i < n_steps; i++)
         {
@@ -58,49 +58,46 @@ int main(int argc, char const *argv[])
 
         return 0;
     }
-    else {
-        constexpr size_t dim = 3;
+    // else {
+    //     constexpr size_t dim = 3;
 
-        auto pair_force = LennardJones(1.0, 1.0);
-        auto confinement_force = RadialConfinement<dim>(2.0);
+    //     auto pair_force = LennardJones(1.0, 1.0);
+    //     auto confinement_force = RadialConfinement<dim>(2.0);
 
-        auto particles = generate_random_init<DataLayout::SoA, dim>(num_particles, -1, 1, -2, 2);
-        auto integrator = LeapFrog();
-        IPS_Simulator<DataLayout::SoA, dim, LeapFrog> ips(pair_force, confinement_force,
-                                            particles, std::move(integrator));
+    //     auto particles = generate_random_init<DataLayout::SoA, dim>(num_particles, -1, 1, -2, 2);
+    //     auto integrator = LeapFrog();
+    //     IPS_Simulator<decltype(particles), decltype(integrator)> ips(particles);
 
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        for (size_t i = 0; i < n_steps; i++)
-        {
-            if( i % output_interval == 0)
-            {
-                for (size_t j = 0; j < num_particles; j++)
-                {
-                    for (size_t d = 0; d < dim; d++)
-                    {
-                        std::cout << ips.particles.positions[d][j] << " ";
-                    }
-                    for (size_t d = 0; d < dim; d++)
-                    {
-                        std::cout << ips.particles.velocities[d][j] << " ";
-                    }
-                    for (size_t d = 0; d < dim-1; d++)
-                    {
-                        std::cout << ips.particles.forces[d][j] << " ";
-                    }
-                    // we do this separately so that there is no " " at the end of the line, which causes problems when reading the particle data
-                    std::cout << ips.particles.forces[2][j]; // TODO: make this more generalisable
-                    std::cout << std::endl;
-                }
-                std::cout << std::endl;
-            }
-            ips.integrate(step_size);
-        }
+    //     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    //     for (size_t i = 0; i < n_steps; i++)
+    //     {
+    //         if( i % output_interval == 0)
+    //         {
+    //             for (size_t j = 0; j < num_particles; j++)
+    //             {
+    //                 for (size_t d = 0; d < dim; d++)
+    //                 {
+    //                     std::cout << ips.particles.positions[d][j] << " ";
+    //                 }
+    //                 for (size_t d = 0; d < dim; d++)
+    //                 {
+    //                     std::cout << ips.particles.velocities[d][j] << " ";
+    //                 }
+    //                 for (size_t d = 0; d < dim; d++)
+    //                 {
+    //                     std::cout << ips.particles.forces[d][j] << " ";
+    //                 }
+    //                 std::cout << std::endl;
+    //             }
+    //             std::cout << std::endl;
+    //         }
+    //         ips.integrate(step_size);
+    //     }
 
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-        std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;                       
+    //     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    //     auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    //     std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;                       
 
-    }
+    // }
 
 }

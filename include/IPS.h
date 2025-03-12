@@ -3,10 +3,13 @@
 #include "Potential.h"
 #include <memory>
 
-template<DataLayout Layout, size_t Dim, typename Integrator>
+template<typename System, typename Integrator>
 class IPS_Simulator
 {
 public:
+    constexpr static size_t Dim = System::DimVal;
+    // using Layout = System::Layout;
+    
     using pair_force_callable = std::function<double(double)>;
     using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
     /**
@@ -14,13 +17,7 @@ public:
      * use pair potential, confinement potential, and initial positions and velocities to initialize the system.
      * 
      */
-    IPS_Simulator(pair_force_callable _pair_force, confinement_force_callable _confinement_force,
-                  Particles<Layout, Dim>& _particles,
-                  Integrator _integrator)
-        : pair_force(_pair_force), confinement_force(_confinement_force), particles(_particles), integrator(std::move(_integrator))
-    {}
-
-    IPS_Simulator(Particles<Layout, Dim>& _particles)
+    IPS_Simulator(System& _particles)
         : particles(_particles)
     {
         pair_force = Spring(1.0, 1.0);
@@ -42,7 +39,6 @@ public:
 public:
     pair_force_callable pair_force;
     confinement_force_callable confinement_force;
-    Particles<Layout, Dim>& particles;
+    System& particles;
     Integrator integrator;
-
 };
