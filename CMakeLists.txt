@@ -35,7 +35,7 @@ if(USE_PYBIND)
     find_package(pybind11 REQUIRED)
     include_directories(${pybind11_INCLUDE_DIRS})
 
-    find_package(Python3 3.13 REQUIRED COMPONENTS Development)
+    find_package(Python3 3.8 REQUIRED COMPONENTS Development)
     include_directories(${Python3_INCLUDE_DIRS})
 
     # ------------------------------------------------------------------------------

@@ -1,4 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from IPython.display import HTML, display
+from matplotlib.gridspec import GridSpec
+import os
+import tempfile
+from PIL import Image
+from tqdm import tqdm
 
 def kinetic_energy(velocity):
     return 0.5 * np.linalg.norm(velocity) ** 2
@@ -30,24 +38,16 @@ def calculate_total_energy(positions, velocities):
     total_potential_energy = potential_energy(positions)
     return total_kinetic_energy + total_potential_energy
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from IPython.display import HTML, display
-from matplotlib.gridspec import GridSpec
-import os
-import tempfile
-from PIL import Image
-
 class SimulationVisualizer:
     def __init__(self, simulator, particle_system, 
                  rad=10.0, draw_interval=100, dt=0.001):
         """
-        模拟可视化控制器
-        :param simulator: IPS模拟器对象
-        :param particle_system: 粒子系统对象
-        :param rad: 约束半径
-        :param draw_interval: 绘图间隔步数
-        :param dt: 时间步长
+        visualizer for the simulation
+        :param simulator: IPSimulator object
+        :param particle_system: ParticleSystem object
+        :param rad: constraint radius
+        :param draw_interval: draw interval
+        :param dt: time step
         """
         self.simulator = simulator
         self.p = particle_system
@@ -61,8 +61,7 @@ class SimulationVisualizer:
         self._init_energy_containers()
         
     def _init_plots(self):
-        """初始化绘图元素"""
-        # 位置子图
+        """init the plots"""
         
         self.ax1 = self.fig.add_subplot(121)
         self.scat = self.ax1.scatter([], [], s=50, edgecolors='k')
@@ -84,13 +83,13 @@ class SimulationVisualizer:
         return self.scat, *self.lines.values()
 
     def _draw_constraint(self):
-        """绘制约束区域"""
+        """draw the constraint circle"""
         constraint = plt.Circle((0,0), self.rad, color='r', fill=False, 
                                linestyle='--', alpha=0.7)
         self.ax1.add_artist(constraint)
         
     def _init_energy_containers(self):
-        """初始化能量数据容器"""
+        """generate containers for data"""
         self.energy_history = {
             'total': [],
             'kinetic': [],
@@ -99,13 +98,13 @@ class SimulationVisualizer:
         
     def add_callback(self, callback_func):
         """
-        添加自定义回调函数
-        :param callback_func: 函数格式 func(simulator, current_step)
+        add user defined callback function
+        :param callback_func: 
         """
         self.callbacks.append(callback_func)
         
     def _update_energy_plot_limits(self):
-        """动态更新能量图Y轴范围"""
+        """adjust the limits of the energy plot"""
         all_energies = np.concatenate([
             self.energy_history['total'],
             self.energy_history['kinetic'],
@@ -121,7 +120,7 @@ class SimulationVisualizer:
             self.ax2.set_ylim(*self.energy_ylim)
             
     def _calculate_energies(self):
-        """计算各能量分量"""
+        """calculate the energies"""
         positions = self.p.get_positions()
         velocities = self.p.get_velocities()
         
@@ -136,12 +135,12 @@ class SimulationVisualizer:
         }
     
     def _update_plots(self, step):
-        """更新可视化元素"""
-        # 更新位置
+        """update the plots"""
+        # update particle positions
         positions = self.p.get_positions()
         self.scat.set_offsets(np.c_[positions[0], positions[1]])
         
-        # 更新能量曲线
+        # update energy plot
         energies = self._calculate_energies()
         for key in self.energy_history:
             self.energy_history[key].append(energies[key])
@@ -150,98 +149,84 @@ class SimulationVisualizer:
                 self.energy_history[key]
             )
             
-        # 自动调整坐标轴
+        # adjust limits
         self._update_energy_plot_limits()
         self.ax2.set_xlim(0, len(self.energy_history['total']))
         
     def run_animation(self, total_steps):
-        print(f"Running animation for {total_steps} steps")
-        """运行动画"""
+        # print(f"Running animation for {total_steps} steps")
+
+        progress_bar = tqdm(total=total_steps // self.draw_interval, desc="Animating", unit="frame")
+
+        """do the animation"""
         def _frame_update(frame):
-            # 执行自定义回调
+            # do the callbacks
             for cb in self.callbacks:
                 cb(self.simulator, frame*self.draw_interval)
                 
             self._update_plots(frame)
-            # 推进模拟
+            # do the simulation
             self.simulator.integrate_n_steps(self.dt, self.draw_interval)
-
+            progress_bar.update(1)
             return self.scat, *self.lines.values()
         
         ani = animation.FuncAnimation(
             self.fig, _frame_update,
             frames=range(0, total_steps, self.draw_interval), init_func=self._init_plots,
         )
-        print(f"Output number of frames: {total_steps // self.draw_interval}")
-        # ani.save('test.gif', writer='ffmpeg', fps=10)
         json = ani.to_jshtml()
+        progress_bar.close()
         plt.close()
         return HTML(json)
     
     def run_animation_to_gif(self, total_steps, gif_path, fps=10):
         """
-        边模拟边写入 GIF 文件
-        :param total_steps: 总模拟步数
-        :param gif_path: 输出 GIF 文件路径
-        :param fps: 帧率（每秒帧数）
+        output the animation to a gif
+        :param total_steps: total steps
+        :param gif_path: output gif path
+        :param fps: frame per second
         """
         print(f"Running animation for {total_steps} steps, saving to {gif_path}")
         
-        # 创建临时目录存储单帧图像
+        # create a temporary directory to store the frames
         temp_dir = tempfile.mkdtemp()
         frame_files = []
         self._init_plots()
         try:
-            # 逐帧生成并保存
+            # generate frames
             for frame_idx, step in enumerate(range(0, total_steps, self.draw_interval)):
-                # 执行自定义回调
                 for cb in self.callbacks:
                     cb(self.simulator, step)
 
-                # 更新绘图
                 self._update_plots(frame_idx)
                 
-                # 推进模拟
                 self.simulator.integrate_n_steps(self.dt, self.draw_interval)
 
-                # 保存当前帧为临时文件
                 frame_path = os.path.join(temp_dir, f"frame_{frame_idx:04d}.png")
                 self.fig.savefig(frame_path, dpi=100)
                 frame_files.append(frame_path)
-
-                # print(f"Frame {frame_idx} saved to {frame_path}")
-
-            # 将所有帧合并为 GIF
-            # self._create_gif(frame_files, gif_path, fps)
 
         finally:
             print(f"Output number of frames: {len(frame_files)}")
             # out put a gif
             self._create_gif(frame_files, gif_path, fps)
-            # 清理临时文件
             for frame_file in frame_files:
                 os.remove(frame_file)
             os.rmdir(temp_dir)
 
     def _create_gif(self, frame_files, gif_path, fps):
-        """
-        将帧图像合并为 GIF
-        :param frame_files: 帧文件路径列表
-        :param gif_path: 输出 GIF 文件路径
-        :param fps: 帧率
-        """
+        
         images = []
         for frame_file in frame_files:
             img = Image.open(frame_file)
             images.append(img)
 
-        # 保存为 GIF
         images[0].save(
             gif_path,
             save_all=True,
             append_images=images[1:],
             optimize=True,
-            duration=1000 // fps,  # 每帧持续时间（毫秒）
-            loop=0  # 无限循环
+            duration=1000 // fps,  
+            loop=0
         )
         print(f"GIF saved to {gif_path}")
