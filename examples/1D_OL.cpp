@@ -55,10 +55,10 @@ int main(int argc, char *argv[])
         OverdampedLangevin<1> odLangevin(1, force_func, init_pos[0]);
 
         // measure the time
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         auto traj = odLangevin.getTrajectory(n_steps, step_size);
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        // auto one_time = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
         // std::cout << "# Time difference = " << one_time << "[ms]" << std::endl;
 
         // add a new line to separate the time and the trajectories
@@ -78,9 +78,9 @@ int main(int argc, char *argv[])
         auto inits = generate_random_init(num_tasks);
         auto b_odl = BatchedOverdampedLangevin<1>(1, force_func, inits);
         // record the time
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         auto batched_traj = b_odl.getBatchedTrajectory(n_steps, step_size);
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         // std::cout << "# Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
         
         // add a new line to separate the time and the trajectories
