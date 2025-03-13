@@ -28,6 +28,14 @@ def potential_energy(position, epsilon=1.0, sigma=1.0, pot = "LJ"):
                 raise ValueError("Potential not implemented")
     return total_potential_energy
 
+def calculate_total_kinetic_energy(velocities):
+    num_particles = len(velocities[0])
+    total_kinetic_energy = 0
+    for i in range(num_particles):
+        vel = np.array([velocities[0][i], velocities[1][i]])
+        total_kinetic_energy += kinetic_energy(vel)
+    return total_kinetic_energy
+
 def calculate_total_energy(positions, velocities):
     num_particles = len(positions[0])
     total_kinetic_energy = 0

@@ -241,9 +241,9 @@ public:
 
         // 4. O-step update the positions, use the velocities from the B-step
         static std::mt19937 gen(std::random_device{}());
-        static std::normal_distribution<double> normal_dist(0, particles.temperature);
+        static std::normal_distribution<double> normal_dist(0, 1);
         double c1 = std::exp(-step_size * particles.gamma);
-        double c2 = std::sqrt(1 - exp(-2 * step_size * particles.gamma));
+        double c2 = std::sqrt( (1 - exp(-2 * step_size * particles.gamma)) * particles.temperature);
 
         for (size_t d = 0; d < Dim; d++)
         {

@@ -82,16 +82,6 @@ struct LangevinSystem : public Particles<DataLayout::SoA, Dim>
 {
     double gamma = 1.0;
     double temperature = 1.0;
-
-#ifdef USE_PYBIND11
-    double* get_gamma() {
-        return &gamma;
-    }
-
-    double* get_temperature() {
-        return &temperature;
-    }
-#endif
 };
 
 template<DataLayout Layout, size_t Dim>

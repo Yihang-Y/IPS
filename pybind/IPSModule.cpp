@@ -97,9 +97,7 @@ PYBIND11_MODULE(IPSModule, m) {
                 return p;
             }), py::arg("n_particles"), py::arg("gamma"), py::arg("temperature"))
         .def_readwrite("gamma", &LangevinSystem<2>::gamma)
-        .def_readwrite("temperature", &LangevinSystem<2>::temperature)
-        .def("get_gamma", &LangevinSystem<2>::get_gamma)
-        .def("get_temperature", &LangevinSystem<2>::get_temperature);
+        .def_readwrite("temperature", &LangevinSystem<2>::temperature);
 
 
     // NOTE: useless, if it is bind to python, when C++ code call operator(), it will call the python function
