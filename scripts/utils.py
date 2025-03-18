@@ -79,7 +79,6 @@ class SimulationVisualizer:
         self.ax1.set_aspect('equal')
         self.ax1.set_title(f'Particle Positions (R={self.rad})')
         
-        # 能量子图
         self.ax2 = self.fig.add_subplot(122)
         self.lines = {
             'total': self.ax2.plot([], [], 'k-', label='Total')[0],

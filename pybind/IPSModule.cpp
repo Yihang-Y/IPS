@@ -67,6 +67,25 @@ PYBIND11_MODULE(IPSModule, m) {
         .def("integrate", &IPS_Simulator<LangevinSystem<2>, ABOBA>::integrate)
         .def("integrate_n_steps", &IPS_Simulator<LangevinSystem<2>, ABOBA>::integrate_n_steps);
 
+    py::class_<IPS_Simulator<NoseHooverSystem<2>, NoseHoover>>(m, "IPS_Simulator_NoseHoover")
+        .def(py::init<NoseHooverSystem<2>&>())
+        .def("init", [](IPS_Simulator<NoseHooverSystem<2>, NoseHoover>& self,
+                        py::dict pair_force_config,
+                        py::dict confinement_force_config) {
+            Config pair_force_config_cpp;
+            Config confinement_force_config_cpp;
+            for (auto item : pair_force_config) {
+                pair_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            for (auto item : confinement_force_config) {
+                confinement_force_config_cpp[item.first.cast<std::string>()] = cast_config_value(item.second);
+            }
+            self.pair_force = make_pair_force(pair_force_config_cpp);
+            self.confinement_force = make_confinement_force(confinement_force_config_cpp);
+        })
+        .def("integrate", &IPS_Simulator<NoseHooverSystem<2>, NoseHoover>::integrate)
+        .def("integrate_n_steps", &IPS_Simulator<NoseHooverSystem<2>, NoseHoover>::integrate_n_steps);
+
     py::class_<Particles<DataLayout::SoA, 2>>(m, "Particles")
         .def(py::init([](size_t n_particles) {
             Particles<DataLayout::SoA, 2> p;
@@ -98,6 +117,24 @@ PYBIND11_MODULE(IPSModule, m) {
             }), py::arg("n_particles"), py::arg("gamma"), py::arg("temperature"))
         .def_readwrite("gamma", &LangevinSystem<2>::gamma)
         .def_readwrite("temperature", &LangevinSystem<2>::temperature);
+
+    py::class_<NoseHooverSystem<2>, Particles<DataLayout::SoA, 2>>(m, "NoseHooverSystem")
+        .def(py::init([](size_t n_particles, double temperature, double Q, double eta) {
+                NoseHooverSystem<2> p;
+                p.temperature = temperature;
+                p.Q = Q;
+                p.eta = eta;
+                for (size_t d = 0; d < 2; ++d) {
+                    p.positions[d].resize(n_particles);
+                    p.velocities[d].resize(n_particles);
+                    p.forces[d].resize(n_particles);
+                }
+                return p;
+            }), py::arg("n_particles"), py::arg("temperature"), py::arg("Q"), py::arg("eta")
+        )
+        .def_readwrite("temperature", &NoseHooverSystem<2>::temperature)
+        .def_readwrite("Q", &NoseHooverSystem<2>::Q)
+        .def_readwrite("eta", &NoseHooverSystem<2>::eta);
 
 
     // NOTE: useless, if it is bind to python, when C++ code call operator(), it will call the python function

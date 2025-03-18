@@ -84,6 +84,25 @@ struct LangevinSystem : public Particles<DataLayout::SoA, Dim>
     double temperature = 1.0;
 };
 
+template<size_t Dim>
+struct NoseHooverSystem : public Particles<DataLayout::SoA, Dim>
+{
+    double temperature = 1.0;
+    double Q = 1.0;
+
+    double eta = 0.0;
+};
+
+template<size_t Dim>
+struct NosePoincareSystem : public Particles<DataLayout::SoA, Dim>
+{
+    double s = 0.0;
+    double pi = 0.0;
+
+    double Q = 1.0;
+    double temperature = 1.0;
+};
+
 template<DataLayout Layout, size_t Dim>
 
 /**
