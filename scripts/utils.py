@@ -97,6 +97,8 @@ class SimulationVisualizer:
         
         self.ax1 = self.fig.add_subplot(121)
         self.scat = self.ax1.scatter([], [], s=50, edgecolors='k')
+        self.scat.set_offsets(np.c_[self.p.get_positions()[0], self.p.get_positions()[1]])
+
         self._draw_constraint()
         self.ax1.set_xlim(-self.rad-2, self.rad+2)
         self.ax1.set_ylim(-self.rad-2, self.rad+2)
