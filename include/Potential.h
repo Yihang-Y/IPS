@@ -48,7 +48,7 @@ public:
 
     REFLECT(eps, sigma);
 
-private:
+// private:
     double eps;
     double sigma;
 };

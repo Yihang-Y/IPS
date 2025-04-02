@@ -5,13 +5,13 @@
 #include "Particles.h"
 #include <iostream>
 
+using pair_force_callable = std::function<double(double)>;
+template <size_t Dim>
+using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
 
 template<typename Derived>
 class IntegratorBase {
 public:
-    using pair_force_callable = std::function<double(double)>;
-    template <size_t Dim>
-    using confinement_force_callable = std::function<vec<Dim>(const vec<Dim>&)>;
 
     template<typename Particles>
     void integrate(Particles& particles, 
@@ -28,6 +28,66 @@ public:
         }
     }
 };
+
+template<typename Particles>
+static inline void compute_force(Particles& particles,
+                            std::array<std::vector<double>, Particles::DimVal>& forces,
+                            const pair_force_callable& pair_force,
+                            const confinement_force_callable<Particles::DimVal>& confinement_force) {
+    const size_t N = forces[0].size();
+    // 1. use new positions to calculate the forces
+    constexpr size_t Dim = Particles::DimVal;
+
+    // 2.1 caculate the confinement forces
+    for (size_t i = 0; i < N; i++)
+    {
+        auto pos = particles.get_position(i);
+        auto conF = confinement_force(pos);
+        for (size_t d = 0; d < Dim; d++)
+        {
+            forces[d][i] += conF[d];
+        }
+    }
+
+    // 2.2. calculate the pair forces f_ij = - (d\phi(r_ij) / r_ij) * (q_i - q_j)
+
+    // 2.2.1 calculate the scalar coff: f_r = - (d\phi(r_ij) / r_ij)
+    // store them into a 2D array: pair_force_r[N][N]
+    std::vector<std::vector<double>> pair_force_r(N, std::vector<double>(N, 0));
+    for (size_t i = 0; i < N; i++)
+    {
+        auto pos_i = particles.get_position(i);
+        for (size_t j = i + 1; j < N; j++)
+        {
+            auto pos_j = particles.get_position(j);
+            double r = 0;
+            for (size_t d = 0; d < Dim; d++)
+            {
+                r += (pos_i[d] - pos_j[d]) * (pos_i[d] - pos_j[d]);
+            }
+            r = std::sqrt(r);
+            
+            double pairF = pair_force(r);
+            pair_force_r[i][j] = pairF;
+            // pair_force_r[j][i] = pairF;
+        }
+    }
+    // 2.2.2 calculate the pair forces f_ij = f_r * (q_i - q_j) and update the forces
+    for (size_t d = 0; d < Dim; d++)
+    {
+        for (size_t i = 0; i < N; i++)
+        {
+            auto pos_i = particles.get_position(i);
+            for (size_t j = i + 1; j < N; j++)
+            {
+                auto pos_j = particles.get_position(j);
+                double f_ij = pair_force_r[i][j] * (pos_i[d] - pos_j[d]);
+                forces[d][i] -= f_ij;
+                forces[d][j] += f_ij;
+            }
+        }
+    }
+}
 
 class LeapFrog : public IntegratorBase<LeapFrog> {
 public:
@@ -60,64 +120,14 @@ public:
                 particles.positions[d][i] += step_size * particles.velocities[d][i];
             }
         }
-
-        // 3. use new positions to calculate the forces
-        // std::array<std::array<double, N>, Dim> forces = {};
+        // 3. use new positions to calculate the 
         std::array<std::vector<double>, Dim> forces = {};
         for (size_t d = 0; d < Dim; d++)
         {
             forces[d].resize(N);
         }
+        compute_force(particles, forces, pair_force, confinement_force);
 
-        // 3.1 caculate the confinement forces
-        for (size_t i = 0; i < N; i++)
-        {
-            auto pos = particles.get_position(i);
-            auto conF = confinement_force(pos);
-            for (size_t d = 0; d < Dim; d++)
-            {
-                forces[d][i] += conF[d];
-            }
-        }
-
-        // 3.2. calculate the pair forces f_ij = - (d\phi(r_ij) / r_ij) * (q_i - q_j)
-
-        // 3.2.1 calculate the scalar coff: f_r = - (d\phi(r_ij) / r_ij)
-        // store them into a 2D array: pair_force_r[N][N]
-        std::vector<std::vector<double>> pair_force_r(N, std::vector<double>(N, 0));
-        for (size_t i = 0; i < N; i++)
-        {
-            auto pos_i = particles.get_position(i);
-            for (size_t j = i + 1; j < N; j++)
-            {
-                auto pos_j = particles.get_position(j);
-                double r = 0;
-                for (size_t d = 0; d < Dim; d++)
-                {
-                    r += (pos_i[d] - pos_j[d]) * (pos_i[d] - pos_j[d]);
-                }
-                r = std::sqrt(r);
-                
-                double pairF = pair_force(r);
-                pair_force_r[i][j] = pairF;
-                // pair_force_r[j][i] = pairF;
-            }
-        }
-        // 3.2.2 calculate the pair forces f_ij = f_r * (q_i - q_j) and update the forces
-        for (size_t d = 0; d < Dim; d++)
-        {
-            for (size_t i = 0; i < N; i++)
-            {
-                auto pos_i = particles.get_position(i);
-                for (size_t j = i + 1; j < N; j++)
-                {
-                    auto pos_j = particles.get_position(j);
-                    double f_ij = pair_force_r[i][j] * (pos_i[d] - pos_j[d]);
-                    forces[d][i] += f_ij;
-                    forces[d][j] -= f_ij;
-                }
-            }
-        }
 
         // 4. update the velocities, using new forces
         for (size_t d = 0; d < Dim; d++)
@@ -174,60 +184,17 @@ public:
         }
 
         // 2. use new positions to calculate the forces
-        // std::array<std::array<double, N>, Dim> forces = {};
-        // std::array<std::vector<double>, Dim> forces = {};
+        std::array<std::vector<double>, Dim> forces = {};
         for (size_t d = 0; d < Dim; d++)
         {
-            std::fill(particles.forces[d].begin(), particles.forces[d].end(), 0.0);
+            forces[d].resize(N);
+            std::fill(forces[d].begin(), forces[d].end(), 0);
         }
 
-        // 2.1 caculate the confinement forces
-        for (size_t i = 0; i < N; i++)
-        {
-            auto pos = particles.get_position(i);
-            auto conF = confinement_force(pos);
-            for (size_t d = 0; d < Dim; d++)
-            {
-                particles.forces[d][i] += conF[d];
-            }
-        }
-
-        // 2.2. calculate the pair forces f_ij = - (d\phi(r_ij) / r_ij) * (q_i - q_j)
-
-        // 2.2.1 calculate the scalar coff: f_r = - (d\phi(r_ij) / r_ij)
-        // store them into a 2D array: pair_force_r[N][N]
-        std::vector<std::vector<double>> pair_force_r(N, std::vector<double>(N, 0));
-        for (size_t i = 0; i < N; i++)
-        {
-            auto pos_i = particles.get_position(i);
-            for (size_t j = i + 1; j < N; j++)
-            {
-                auto pos_j = particles.get_position(j);
-                double r = 0;
-                for (size_t d = 0; d < Dim; d++)
-                {
-                    r += (pos_i[d] - pos_j[d]) * (pos_i[d] - pos_j[d]);
-                }
-                r = std::sqrt(r);
-                
-                double pairF = pair_force(r);
-                pair_force_r[i][j] = pairF;
-            }
-        }
-        // 2.2.2 calculate the pair forces f_ij = f_r * (q_i - q_j) and update the forces
+        compute_force(particles, forces, pair_force, confinement_force);
         for (size_t d = 0; d < Dim; d++)
         {
-            for (size_t i = 0; i < N; i++)
-            {
-                auto pos_i = particles.get_position(i);
-                for (size_t j = i + 1; j < N; j++)
-                {
-                    auto pos_j = particles.get_position(j);
-                    double f_ij = pair_force_r[i][j] * (pos_i[d] - pos_j[d]);
-                    particles.forces[d][i] -= f_ij;
-                    particles.forces[d][j] += f_ij;
-                }
-            }
+            std::swap(particles.forces[d], forces[d]);
         }
 
         // 3. B-step update the velocities, use the forces from last step
@@ -272,6 +239,214 @@ public:
             }
         }
     }
+
+    template<typename Particles>
+    void integrate_on_aos(Particles& particles,
+                            const pair_force_callable& pair_force, 
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
+                            double step_size){}
+};
+
+class NoseHoover : public IntegratorBase<NoseHoover> {
+public:
+    template<typename Particles>
+    void integrate_on_soa(Particles& particles,
+                            const pair_force_callable& pair_force, 
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
+                            double step_size){
+        constexpr size_t Dim = Particles::DimVal;
+        const size_t N = particles.positions[0].size();
+        
+        const double half_step = 0.5 * step_size;
+        // 1. A step, update the positions
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.positions[d][i] += half_step * particles.velocities[d][i];
+            }
+        }
+
+        // 2. calculate the forces
+        std::array<std::vector<double>, Dim> forces = {};
+        for (size_t d = 0; d < Dim; d++)
+        {
+            forces[d].resize(N);
+            std::fill(forces[d].begin(), forces[d].end(), 0);
+        }
+        compute_force(particles, forces, pair_force, confinement_force);
+        for (size_t d = 0; d < Dim; d++)
+        {
+            std::swap(particles.forces[d], forces[d]);
+        }
+
+        // 3. B step, update the velocities
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * particles.forces[d][i];
+            }
+        }
+
+        // 4. C step, uodate the thermostat, using p_0 * exp(-\eta * dt / 2)?
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] *= std::exp(-particles.eta * half_step);
+            }
+        }
+
+        // 5. D step, update the thermostat variable eta
+
+        // 5.1 calculate the kinetic energy
+        double kinetic_energy = 0;
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                kinetic_energy += particles.velocities[d][i] * particles.velocities[d][i];
+            }
+        }
+        particles.eta += step_size * (kinetic_energy - particles.temperature * Dim) / particles.Q;
+
+        // 6. C step, uodate the thermostat, using p_0 * exp(-\eta * dt / 2)?
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] *= std::exp(-particles.eta * half_step);
+            }
+        }
+
+        // 7. B step, update the velocities
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * particles.forces[d][i];
+            }
+        }
+
+        // 8. A step, update the positions
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.positions[d][i] += half_step * particles.velocities[d][i];
+            }
+        }
+    }
+
+    template<typename Particles>
+    void integrate_on_aos(Particles& particles,
+                            const pair_force_callable& pair_force, 
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
+                            double step_size){}
+};
+
+
+class NoseHooverLangevin : public IntegratorBase<NoseHooverLangevin> {
+public:
+    template<typename Particles>
+    void integrate_on_soa(Particles& particles,
+                            const pair_force_callable& pair_force, 
+                            const confinement_force_callable<Particles::DimVal>& confinement_force,
+                            double step_size){
+        constexpr size_t Dim = Particles::DimVal;
+        const size_t N = particles.positions[0].size();
+        
+        const double half_step = 0.5 * step_size;
+        // 1. A step, update the positions
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.positions[d][i] += half_step * particles.velocities[d][i];
+            }
+        }
+
+        // 2. calculate the forces
+        std::array<std::vector<double>, Dim> forces = {};
+        for (size_t d = 0; d < Dim; d++)
+        {
+            forces[d].resize(N);
+            std::fill(forces[d].begin(), forces[d].end(), 0);
+        }
+        compute_force(particles, forces, pair_force, confinement_force);
+        for (size_t d = 0; d < Dim; d++)
+        {
+            std::swap(particles.forces[d], forces[d]);
+        }
+
+        // 3. B step, update the velocities
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * particles.forces[d][i];
+            }
+        }
+
+        // 4. C step, uodate the thermostat, using p_0 * exp(-\eta * dt / 2)?
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] *= std::exp(-particles.eta * half_step);
+            }
+        }
+
+        // 5. O step, update the eta term
+        // 5.1 calculate the kinetic energy
+        double kinetic_energy = 0;
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                kinetic_energy += 0.5 * particles.velocities[d][i] * particles.velocities[d][i];
+            }
+        }
+
+        auto gen = std::mt19937(std::random_device{}());
+        static std::normal_distribution<double> normal_dist(0, 1);
+
+        // 5.2 update the eta term
+        particles.eta = particles.eta * std::exp(-particles.gamma * step_size) + \
+                        (1 - std::exp(-particles.gamma * step_size)) * \
+                        (kinetic_energy - Dim * particles.temperature) / particles.gamma + \
+                        std::sqrt(particles.temperature / particles.Q * (1 - std::exp(-2 * particles.gamma * step_size))) * \
+                        normal_dist(gen);
+
+        // 6. C step, uodate the thermostat, using p_0 * exp(-\eta * dt / 2)?
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] *= std::exp(-particles.eta * half_step);
+            }
+        }
+
+        // 7. B step, update the velocities
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.velocities[d][i] += half_step * particles.forces[d][i];
+            }
+        }
+
+        // 8. A step, update the positions
+        for (size_t d = 0; d < Dim; d++)
+        {
+            for (size_t i = 0; i < N; i++)
+            {
+                particles.positions[d][i] += half_step * particles.velocities[d][i];
+            }
+        }
+    }
+
 
     template<typename Particles>
     void integrate_on_aos(Particles& particles,

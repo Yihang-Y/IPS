@@ -7,6 +7,8 @@ import os
 import tempfile
 from PIL import Image
 from tqdm import tqdm
+import lattpy as lp
+
 
 def kinetic_energy(velocity):
     return 0.5 * np.linalg.norm(velocity) ** 2
@@ -36,19 +38,39 @@ def calculate_total_kinetic_energy(velocities):
         total_kinetic_energy += kinetic_energy(vel)
     return total_kinetic_energy
 
-def calculate_total_energy(positions, velocities):
+def calculate_total_energy(positions, velocities, epsilon=1.0, sigma=1.0):
     num_particles = len(positions[0])
     total_kinetic_energy = 0
     total_potential_energy = 0
     for i in range(num_particles):
         vel = np.array([velocities[0][i], velocities[1][i]])
         total_kinetic_energy += kinetic_energy(vel)
-    total_potential_energy = potential_energy(positions)
+    total_potential_energy = potential_energy(positions, epsilon, sigma)
     return total_kinetic_energy + total_potential_energy
+
+def generate_circle_cluster(r, x0, y0, initial_spacing, show = False):
+    """generate a cluster of particles in a circle, with radius r and center (x0, y0)"""
+    factor = 4
+    _dis = initial_spacing * factor / np.sqrt(3)
+    latt = lp.Lattice.hexagonal(a = _dis)
+    latt.add_atom()
+    latt.add_connections()
+    
+    s = lp.Circle((x0, y0), r * factor)
+    latt.build(shape = s, primitive=True)
+    if show:
+        ax = latt.plot()
+        s.plot(ax)
+        plt.show()
+    num_particles = latt.data.positions.shape[0]
+    positions = latt.data.positions
+
+    positions = (positions - [x0, y0]) / factor + [x0, y0]
+    return num_particles, positions
 
 class SimulationVisualizer:
     def __init__(self, simulator, particle_system, 
-                 rad=10.0, draw_interval=100, dt=0.001):
+                 rad=10.0, draw_interval=100, dt=0.001, simulation_steps=1, show=True):
         """
         visualizer for the simulation
         :param simulator: IPSimulator object
@@ -63,7 +85,9 @@ class SimulationVisualizer:
         self.dt = dt
         self.draw_interval = draw_interval
         self.callbacks = []
-        self.fig = plt.figure(figsize=(12, 6))
+        if show:
+            self.fig = plt.figure(figsize=(12, 6))
+        self.simulation_steps = draw_interval // simulation_steps
         
         
         self._init_energy_containers()
@@ -73,13 +97,14 @@ class SimulationVisualizer:
         
         self.ax1 = self.fig.add_subplot(121)
         self.scat = self.ax1.scatter([], [], s=50, edgecolors='k')
+        self.scat.set_offsets(np.c_[self.p.get_positions()[0], self.p.get_positions()[1]])
+
         self._draw_constraint()
         self.ax1.set_xlim(-self.rad-2, self.rad+2)
         self.ax1.set_ylim(-self.rad-2, self.rad+2)
         self.ax1.set_aspect('equal')
         self.ax1.set_title(f'Particle Positions (R={self.rad})')
         
-        # 能量子图
         self.ax2 = self.fig.add_subplot(122)
         self.lines = {
             'total': self.ax2.plot([], [], 'k-', label='Total')[0],
@@ -161,6 +186,14 @@ class SimulationVisualizer:
         self._update_energy_plot_limits()
         self.ax2.set_xlim(0, len(self.energy_history['total']))
         
+    def run_simulation(self, total_steps):
+        """run the simulation"""
+        for step in range(0, total_steps, self.draw_interval):
+            for num in range(0, self.draw_interval, self.simulation_steps):
+                for cb in self.callbacks:
+                    cb(self.simulator, self.p, step)
+                self.simulator.integrate_n_steps(self.dt, self.simulation_steps)
+    
     def run_animation(self, total_steps):
         # print(f"Running animation for {total_steps} steps")
 
@@ -169,12 +202,11 @@ class SimulationVisualizer:
         """do the animation"""
         def _frame_update(frame):
             # do the callbacks
-            for cb in self.callbacks:
-                cb(self.simulator, frame*self.draw_interval)
-                
-            self._update_plots(frame)
-            # do the simulation
-            self.simulator.integrate_n_steps(self.dt, self.draw_interval)
+            for num in range(0, self.draw_interval, self.simulation_steps):
+                for cb in self.callbacks:
+                    cb(self.simulator, self.p, frame + num)
+                self._update_plots(frame)
+                self.simulator.integrate_n_steps(self.dt, self.simulation_steps)
             progress_bar.update(1)
             return self.scat, *self.lines.values()
         
@@ -204,7 +236,7 @@ class SimulationVisualizer:
             # generate frames
             for frame_idx, step in enumerate(range(0, total_steps, self.draw_interval)):
                 for cb in self.callbacks:
-                    cb(self.simulator, step)
+                    cb(self.simulator, self.p, frame_idx)
 
                 self._update_plots(frame_idx)
                 
