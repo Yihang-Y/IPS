@@ -127,7 +127,7 @@ public:
             forces[d].resize(N);
         }
         compute_force(particles, forces, pair_force, confinement_force);
-
+        
 
         // 4. update the velocities, using new forces
         for (size_t d = 0; d < Dim; d++)
@@ -139,7 +139,10 @@ public:
         }
 
         // 5. update the forces
-        particles.forces = forces;
+        for (size_t d = 0; d < Dim; d++)
+        {
+            std::swap(particles.forces[d], forces[d]);
+        }
     }
 
     template<typename Particles>

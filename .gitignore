@@ -16,7 +16,8 @@ debug*
 __*/
 .*/
 
-# ignore gif files
+# ignore gif files except in assets/demos
 *.gif
+!assets/demos/*.gif
 *.html
 *.png

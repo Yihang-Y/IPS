@@ -6,31 +6,6 @@
 #include <memory>
 #include <iostream>
 
-using ConfigValue = std::variant<int, double, std::string, bool>;
-using ConfigMap = std::map<std::string, ConfigValue>;
-
-struct Config {
-    ConfigMap config_map;
-    Config() = default;
-
-    ConfigValue& operator[](const std::string& key) {
-        return config_map[key];
-    }
-
-    const ConfigValue& operator[](const std::string& key) const {
-        return config_map.at(key);
-    }
-
-    template<typename T>
-    T get(const std::string& key, const T& default_value = T{}) const {
-        auto it = config_map.find(key);
-        if (it == config_map.end()) {
-            return default_value;
-        }
-        return std::get<T>(it->second);
-    }
-};
-
 class LennardJones {
 public:
     LennardJones() : eps(1.0), sigma(1.0) {}
@@ -47,18 +22,18 @@ public:
     }
 
     REFLECT(eps, sigma);
-
-// private:
+private:
     double eps;
     double sigma;
 };
+REGISTER_PAIR_FORCE(LennardJones);
 
 class Spring {
 public:
     Spring() : k(1.0), r_0(1.0) {}
     Spring(double k, double r_0) : k(k), r_0(r_0) {}
     double operator()(double r) const {
-        return -1 * k * (r - r_0) / r;
+        return k * (r - r_0) / r;
     }
 
     REFLECT(k, r_0);
@@ -66,6 +41,7 @@ private:
     double k;
     double r_0;
 };
+REGISTER_PAIR_FORCE(Spring);
 
 template<size_t dim>
 class HarmonicConfinement {
@@ -80,6 +56,7 @@ public:
 private:
     double coff;
 };
+// REGISTER_CONFINEMENT_FORCE(HarmonicConfinement(dim));
 
 template<size_t dim>
 class RadialConfinement {
@@ -107,22 +84,15 @@ public:
 private:
     double rad;
 };
+// REGISTER_CONFINEMENT_FORCE(RadialConfinement(dim));
 
-// FIXME: should use more reflection to make the code more generic, so we don't need to write the same code again and again
-// but for now, it works.
 auto make_pair_force(const Config& config) -> std::function<double(double)> {
     auto type = config.get<std::string>("type", "LennardJones");
-    if (type == "LennardJones") {
-        LennardJones instance;
-        instance.from_config(config);
-        return instance;
-    } else if (type == "Spring") {
-        Spring instance;
-        instance.from_config(config);
-        return instance;
-    } else {
-        throw std::invalid_argument("Unknown pair force type: " + type);
+    auto it = get_PFF_map().find(type);
+    if (it != get_PFF_map().end()) {
+        return it->second(config);
     }
+    throw std::invalid_argument("Unknown pair force type: " + type);
 }
 
 auto make_confinement_force(const Config& config) -> std::function<vec<2>(const vec<2>&)> {
