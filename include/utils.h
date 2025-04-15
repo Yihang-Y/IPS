@@ -4,6 +4,9 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <map>
+#include <variant>
+
 
 #ifdef USE_PYBIND11
 #include <pybind11/pybind11.h>
@@ -16,6 +19,7 @@ namespace py = pybind11;
 
 
 #ifdef USE_PYBIND11
+PYBIND11_MAKE_OPAQUE(std::vector<std::array<double, 1>>);
 template<int Dim>
 py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double, Dim>>> ptr)
 {
@@ -29,7 +33,7 @@ py::array convert_from_shared_ptr(std::shared_ptr<std::vector<std::array<double,
         2,                                   // number of dimensions
         shape,                               // shape, i.e. number of elements in each dimension
         strides                              // strides, i.e. bytes to jump to get to the next element
-    ));
+    ), py::cast(ptr)); // cast to keep the shared_ptr alive, set base
 }
 
 py::array_t<double> vector_to_array(std::vector<double> &vec) {
@@ -42,6 +46,47 @@ py::array_t<double> vector_to_array(std::vector<double> &vec) {
     );
 }
 #endif
+
+using ConfigValue = std::variant<int, double, std::string, bool>;
+using ConfigMap = std::map<std::string, ConfigValue>;
+
+struct Config {
+    ConfigMap config_map;
+    Config() = default;
+
+    ConfigValue& operator[](const std::string& key) {
+        return config_map[key];
+    }
+
+    const ConfigValue& operator[](const std::string& key) const {
+        return config_map.at(key);
+    }
+
+    template<typename T>
+    T get(const std::string& key, const T& default_value = T{}) const {
+        auto it = config_map.find(key);
+        if (it == config_map.end()) {
+            return default_value;
+        }
+        return std::get<T>(it->second);
+    }
+};
+
+using PairForceFactory = std::function<std::function<double(double)>(const Config&)>;
+template<size_t dim>
+using ConfinementForceFactory = std::function<std::function<vec<dim>(const vec<dim>&)>(const Config&)>;
+
+std::map<std::string, PairForceFactory>& get_PFF_map() {
+    static std::map<std::string, PairForceFactory> factoryMap;
+    return factoryMap;
+}
+
+template<typename T>
+std::function<double(double)> create_pair_force(const Config& config) {
+    T instance;
+    instance.from_config(config);
+    return instance;
+}
 
 namespace reflect {
     #define REFLECT__PP_FOREACH_1(f, _1) f(_1)
@@ -65,8 +110,20 @@ namespace reflect {
     #define REFLECT_EACH_MEMBER(member) \
         member = config.get<decltype(this->member)>(#member, decltype(this->member){});
 
-    #define REFLECT(...) \
-    void from_config(const Config& config) { \
-        REFLECT__PP_FOREACH(REFLECT_EACH_MEMBER, __VA_ARGS__) \
+
+    #define REGISTER_PAIR_FORCE(T) \
+    namespace { \
+        const bool T##_registered __attribute__((used)) = []() { \
+            std::cout << "Registering " << #T << std::endl; \
+            get_PFF_map().emplace(#T, create_pair_force<T>); \
+            return true; \
+        }(); \
     }
+
+    // #define REGISTER_CONFINEMENT(T) \
+
+    #define REFLECT(...) \
+        void from_config(const Config& config) { \
+            REFLECT__PP_FOREACH(REFLECT_EACH_MEMBER, __VA_ARGS__) \
+        }
 }
